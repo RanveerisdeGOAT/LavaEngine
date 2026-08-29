@@ -11,8 +11,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 # Dependencies
 find_package(Vulkan REQUIRED)
-find_package(glfw3 CONFIG REQUIRED)
-find_package(glm CONFIG REQUIRED)
+add_subdirectory(external/glfw-3.5.1)
 
 # LavaVK
 
@@ -46,14 +45,15 @@ target_link_libraries(LavaVK
         PUBLIC
         Vulkan::Vulkan
         glfw
-        glm::glm
 )
 
 # LavaEngine
 
 add_library(LavaEngine STATIC
-        include/LavaEngine/LavaEngine.h
         src/LavaEngine.cpp
+        include/LavaEngine/LavaEngine.hpp
+        include/LavaEngine/Window.hpp
+        src/Window.cpp
 )
 
 target_include_directories(LavaEngine
