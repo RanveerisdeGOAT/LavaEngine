@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.25)
 
 project(LavaEngine
-        VERSION 0.1
+        VERSION 0.2.0
         LANGUAGES CXX
 )
 
@@ -50,10 +50,23 @@ target_link_libraries(LavaVK
 # LavaEngine
 
 add_library(LavaEngine STATIC
-        src/LavaEngine.cpp
         include/LavaEngine/LavaEngine.hpp
+        src/LavaEngine.cpp
+
         include/LavaEngine/Window.hpp
         src/Window.cpp
+
+        include/LavaEngine/Container.hpp
+        src/Container.cpp
+
+        include/LavaEngine/Module.hpp
+        src/Module.cpp
+
+        include/LavaEngine/Resource.hpp
+        src/Resource.cpp
+
+        include/LavaEngine/Modules.hpp
+        src/Modules.cpp
 )
 
 target_include_directories(LavaEngine

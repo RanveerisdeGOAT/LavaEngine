@@ -3,7 +3,13 @@
 #include <string>
 
 #include "LavaVK/LavaVK.hpp"
+
 #include "Window.hpp"
+#include "Container.hpp"
+#include "Module.hpp"
+#include "Resource.hpp"
+#include "Modules.hpp"
+
 
 namespace LavaEngine
 {

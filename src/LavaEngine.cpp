@@ -13,7 +13,7 @@ namespace LavaEngine
           m_instance({
               .applicationName = name,
               .extensions =
-                  m_window.getRequiredInstanceExtensions()
+                  Window::getRequiredInstanceExtensions()
           }),
           m_surface(
               m_instance,
