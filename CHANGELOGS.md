@@ -2,6 +2,11 @@
 
 All notable changes to LavaEngine are documented here.
 
+## [0.4.0-indev] - 30/08/26
+
+### Added:
+* Added Lava Compiler `lavac` to run .so games.
+
 ## [0.3.0-indev] - 30/08/26
 
 ### Added:

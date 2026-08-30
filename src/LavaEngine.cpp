@@ -53,33 +53,6 @@ namespace LavaEngine
         );
     }
 
-    LavaEngine::LavaEngine(
-        LavaEngine&& other
-    ) noexcept
-        : m_window(std::move(other.m_window)),
-          m_instance(std::move(other.m_instance)),
-          m_surface(std::move(other.m_surface)),
-          m_device(std::move(other.m_device)),
-          m_scheduler(std::move(other.m_scheduler))
-    {
-    }
-
-    LavaEngine& LavaEngine::operator=(
-        LavaEngine&& other
-    ) noexcept
-    {
-        if (this == &other)
-            return *this;
-
-        m_device = std::move(other.m_device);
-        m_surface = std::move(other.m_surface);
-        m_instance = std::move(other.m_instance);
-        m_window = std::move(other.m_window);
-        m_scheduler = std::move(other.m_scheduler);
-
-        return *this;
-    }
-
     std::string LavaEngine::getName() const
     {
         return glfwGetWindowTitle(
@@ -89,7 +62,11 @@ namespace LavaEngine
 
     void LavaEngine::run()
     {
-        m_scheduler.execute();
+        while (!m_window.shouldClose()){
+            glfwPollEvents();
+            m_scheduler.execute();
+        }
+        m_scheduler.exitAll();
         m_device.waitIdle();
     }
 }

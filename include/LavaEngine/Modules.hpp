@@ -75,10 +75,12 @@ namespace LavaEngine
     {
     public:
 
+
         GraphicalPiplineModule(
             Device& device,
             PipelineLayout& layout,
             RenderPass& renderPass,
+            VertexLayout& vertex_layout,
             const std::string& vertexShader,
             const std::string& fragmentShader,
             Topology topology = Topology::TRIANGLES,
@@ -89,7 +91,6 @@ namespace LavaEngine
             bool depthWrite = true,
             bool blending = false
         );
-
         ~GraphicalPiplineModule() override = default;
 
         [[nodiscard]]

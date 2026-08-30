@@ -95,6 +95,7 @@ namespace LavaEngine
         Device& device,
         PipelineLayout& layout,
         RenderPass& renderPass,
+        VertexLayout& vertex_layout,
         const std::string& vertexShader,
         const std::string& fragmentShader,
         Topology topology,
@@ -114,6 +115,7 @@ namespace LavaEngine
 
                   .layout = &layout,
                   .renderPass = &renderPass,
+                  .vertexLayout = &vertex_layout,
 
                   .topology = topology,
 

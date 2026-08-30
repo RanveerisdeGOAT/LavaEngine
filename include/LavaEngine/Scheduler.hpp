@@ -30,12 +30,14 @@ namespace LavaEngine
         Job* findJob(JobID id);
 
         void destroyJob(JobID id);
+        void exitAll();
         void execute();
 
         void dependsOn(JobID id, JobID dependency);
 
     private:
         std::vector<Job> m_jobs;
+        std::vector<JobID> m_jobs_completed;
         JobID m_nextID = 0;
     };
 }

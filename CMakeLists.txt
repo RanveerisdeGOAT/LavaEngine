@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.25)
 
 project(LavaEngine
-        VERSION 0.3.0
+        VERSION 0.4.0
         LANGUAGES CXX
 )
 
@@ -9,8 +9,8 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# Dependencies
 find_package(Vulkan REQUIRED)
+
 add_subdirectory(external/glfw-3.5.1)
 
 # LavaVK
@@ -27,15 +27,11 @@ add_library(LavaVK STATIC
         LavaVK/src/Shader.cpp
         LavaVK/src/Descriptor.cpp
         LavaVK/src/Texture.cpp
-
-        LavaVK/include/LavaVK/Surface.hpp
-        LavaVK/include/LavaVK/Core.hpp
 )
 
 target_include_directories(LavaVK
         PUBLIC
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/LavaVK/include>
-        $<INSTALL_INTERFACE:include>
+        ${CMAKE_CURRENT_SOURCE_DIR}/LavaVK/include
 
         PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/LavaVK/external
@@ -67,14 +63,14 @@ add_library(LavaEngine STATIC
 
         include/LavaEngine/Modules.hpp
         src/Modules.cpp
+
         include/LavaEngine/Scheduler.hpp
         src/Scheduler.cpp
 )
 
 target_include_directories(LavaEngine
         PUBLIC
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-        $<INSTALL_INTERFACE:include>
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
 target_link_libraries(LavaEngine
@@ -82,9 +78,11 @@ target_link_libraries(LavaEngine
         LavaVK
 )
 
-# Alias
-
 add_library(LavaEngine::LavaEngine ALIAS LavaEngine)
+
+# lavac
+
+add_subdirectory(lavac)
 
 # Shader compiler
 

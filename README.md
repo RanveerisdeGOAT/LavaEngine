@@ -1,4 +1,4 @@
-# LavaEngine [0.3.0-indev]
+# LavaEngine [0.4.0-indev]
 
 **LavaEngine** is a modular C++ game framework designed to provide the infrastructure needed to build games and interactive applications without imposing a predefined engine architecture.
 
@@ -50,9 +50,7 @@ A game might use an ECS and physics system, while an asset-processing Container 
 
 The Container is fundamentally a **boundary for composition, state, and communication**, rather than a predefined type of application object.
 
----
-
-## Container Communication
+### Container Communication
 
 Containers communicate through explicit mechanisms rather than relying on hidden global state.
 
@@ -75,7 +73,7 @@ A Container can export a resource for other Containers to access.
 
 For example:
 
-```cpp
+```c++
 auto levelData = level.exportResource<LevelData>();
 
 game.importResource(levelData);
@@ -109,8 +107,6 @@ Level Container
 
 Both Containers can potentially access the same underlying resource without unnecessary CPU or GPU copies.
 
----
-
 ### Interfaces
 
 Resources are useful when a Container needs access to data.
@@ -135,8 +131,6 @@ The Editor does not need to know how the World is internally implemented.
 It only needs to know what the `WorldEditorInterface` provides.
 
 This creates a clear boundary between systems and prevents Containers from becoming tightly coupled to each other's implementations.
-
----
 
 ### Events
 
@@ -165,9 +159,7 @@ Events
     "Something happened."
 ```
 
----
-
-# Modules
+### Modules
 
 **Modules** provide functionality.
 
@@ -186,7 +178,7 @@ Examples include:
 
 For example:
 
-```cpp
+```c++
 Container game;
 
 game.addModule<ECS>();
@@ -196,7 +188,7 @@ game.addModule<Renderer>();
 
 A different Container might only require:
 
-```cpp
+```c++
 Container assetCompiler;
 
 assetCompiler.addModule<ModelImporter>();
@@ -213,156 +205,7 @@ This is a fundamental part of LavaEngine's design:
 
 ---
 
-# Resources
-
-Resources represent data or objects that exist within the framework.
-
-Examples include:
-
-```text
-World
-LevelData
-Mesh
-Texture
-Material
-Shader
-GPU Buffer
-Audio Data
-Player Data
-```
-
-Resources are separate from Modules.
-
-A Module performs functionality, while a Resource represents something that functionality operates on.
-
-For example:
-
-```text
-Container
-│
-├── Modules
-│   ├── Renderer
-│   ├── Physics
-│   └── ECS
-│
-└── Resources
-    ├── World
-    ├── Mesh
-    └── GPU Buffer
-```
-
-Resources can be exposed to other Containers using resource handles.
-
-Conceptually:
-
-```cpp
-ResourceHandle<World> world;
-```
-
-This allows LavaEngine to manage resource ownership, lifetime, sharing, and access without requiring Containers to directly manage raw pointers.
-
----
-
-# Outputs
-
-LavaEngine treats output as an optional capability rather than a mandatory property of every Container.
-
-The framework may provide a primary window output:
-
-```text
-LavaEngine.WindowOutput
-```
-
-A rendering module can connect its output to it.
-
-For example:
-
-```text
-Game Container
-      │
-   Renderer
-      │
-      ↓
-Window Output
-      │
-      ↓
-    Display
-```
-
-However, a Container does not need to render anything.
-
-For example:
-
-```text
-Server Container
-├── World
-├── Physics
-└── Networking
-```
-
-A level-data Container could contain nothing that produces output:
-
-```text
-Level Container
-└── LevelData
-```
-
-The LavaEngine application has a **single primary output Container**, but individual Containers are not required to produce output.
-
-This allows LavaEngine to support:
-
-- Games
-- Dedicated servers
-- Level editors
-- Asset tools
-- Simulations
-- Headless applications
-- Rendering experiments
-
-without requiring every application or Container to have a window or renderer.
-
----
-
-# Game and Editor
-
-Tools do not need to be special parts of LavaEngine.
-
-A game and its level editor can simply be separate Containers.
-
-For example:
-
-```text
-              Shared World
-               /       \
-              /         \
-           Game         Editor
-            │             │
-         Renderer       UI/Gizmos
-            │
-       Window Output
-```
-
-Both Containers can communicate with the same world through resources and interfaces.
-
-The Editor is therefore not a privileged part of the framework.
-
-It is simply another application built using LavaEngine's Container system.
-
-This also allows more complex configurations:
-
-```text
-Level
-  │
-  └── World
-       ├── Game
-       └── Editor
-```
-
-The Game and Editor can operate on the same underlying resources while maintaining separate modules and responsibilities.
-
----
-
-# Inspector
+## Inspector
 
 The **Inspector** is a development and debugging system that allows developers to visualize, monitor, and modify Containers and their contents at runtime.
 
@@ -415,13 +258,13 @@ Inspector
         └── chunkSize
 ```
 
-## Inspectable Properties
+### Inspectable Properties
 
 Modules can expose variables to the Inspector.
 
 For example:
 
-```cpp
+```c++
 class Physics : public Module
 {
 public:
@@ -432,7 +275,7 @@ public:
 
 The module can register these properties with LavaEngine:
 
-```cpp
+```c++
 inspect
     .property("gravity", gravity)
     .property("debugDraw", debugDraw);
@@ -471,71 +314,7 @@ This can be used for:
 - Network configuration
 - Audio settings
 
----
-
-## Resource Inspection
-
-Resources can also expose information to the Inspector.
-
-For example:
-
-```cpp
-auto world = container.exportResource<World>();
-```
-
-The Inspector could display:
-
-```text
-World
-├── Size
-│   ├── X: 1024
-│   ├── Y: 256
-│   └── Z: 1024
-│
-├── Chunks
-│   ├── Loaded: 481
-│   └── Generated: 1024
-│
-└── Memory
-    └── 128 MB
-```
-
-A GPU resource could expose:
-
-```text
-GPU Buffer
-├── Size: 256 MB
-├── Usage: Storage
-├── Memory: Device Local
-├── Handle: 0x...
-└── State: Ready
-```
-
-Specialized resources can provide custom visualizers.
-
-For example:
-
-```text
-Texture
-    → Image preview
-
-Mesh
-    → 3D preview
-
-World
-    → World/chunk visualization
-
-GPU Buffer
-    → Buffer/resource viewer
-```
-
-The Inspector does not need to understand these resources itself.
-
-The resource or module can provide the information and visualization required to inspect it.
-
----
-
-## Custom Inspector Interfaces
+### Custom Inspector Interfaces
 
 Simple types can be inspected automatically:
 
@@ -586,9 +365,7 @@ ECS
 
 The Inspector remains generic while modules provide domain-specific information.
 
----
-
-## Inspector Commands
+### Inspector Commands
 
 The Inspector can also expose actions rather than only variables.
 
@@ -611,11 +388,11 @@ This allows development tools to interact with systems without requiring the Ins
 
 ---
 
-# Scheduler
+## Scheduler
 
 LavaEngine does not require every Container to implement a fixed lifecycle such as:
 
-```cpp
+```c++
 Start();
 Update();
 Render();
@@ -639,82 +416,28 @@ This means a data-only Container does not need to pretend to have an update loop
 
 The scheduler operates on the systems that actually need scheduling.
 
----
+You can schedule a job like this:
 
-# Minimal Framework Core
-
-The core of LavaEngine should remain intentionally small.
-
-Conceptually:
-
-```text
-LavaEngine
-├── Container
-├── Module
-├── Resource
-├── ResourceHandle
-├── Interface
-├── Event
-├── Scheduler
-└── Output
+```c++
+engine.getScheduler()->createJob(
+        [&]() -> int
+        {
+            return game.mainloop();
+        }
+    );
 ```
 
-Features such as:
+The return of the task decides if the job needs to be repeated. 
+Returning `0` means the job needs to be repeated while `>0` means the job is completed successfully.
 
-```text
-ECS
-Physics
-Audio
-Networking
-UI
-Rendering
-Animation
-Scripting
-Asset Management
+Run all job with:
+```c++
+engine.run();
 ```
-
-should be implemented as optional modules rather than being fundamental requirements of the framework.
-
-This keeps the core flexible and prevents LavaEngine from becoming tied to a particular game architecture.
 
 ---
 
-# Container Graph
-
-Containers do not necessarily need to form a strict hierarchy.
-
-They can instead form a graph of dependencies and shared resources.
-
-For example:
-
-```text
-              World
-             /     \
-            ↓       ↓
-        Renderer   Physics
-            │
-            ↓
-       Window Output
-```
-
-Or:
-
-```text
-             LavaEngine
-             /       \
-            ↓         ↓
-          Game      Editor
-            \         /
-             \       /
-                ↓
-              World
-```
-
-This allows multiple independent systems to work with the same underlying resources without forcing them into a traditional scene hierarchy.
-
----
-
-# Design Principles
+## Design Principles
 
 LavaEngine is built around several principles.
 
@@ -760,7 +483,7 @@ LavaEngine provides building blocks. The developer decides how those building bl
 
 ---
 
-# Philosophy
+## Philosophy
 
 LavaEngine follows one fundamental principle:
 

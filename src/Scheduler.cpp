@@ -21,8 +21,8 @@ namespace LavaEngine
     }
 
     Scheduler::Scheduler(Scheduler&& other) noexcept
-    : m_jobs(std::move(other.m_jobs)),
-      m_nextID(other.m_nextID)
+        : m_jobs(std::move(other.m_jobs)),
+          m_nextID(other.m_nextID)
     {
         other.m_nextID = 0;
     }
@@ -99,51 +99,77 @@ namespace LavaEngine
         if (it == m_jobs.end())
             return;
 
-        m_jobs.erase(it);
+        // Exit.
+        if (it->exit)
+            it->exit();
 
+        // Remove this job from dependency lists.
         for (auto& job : m_jobs)
         {
-            std::erase(
-                job.dependencies,
-                id
-            );
+            std::erase(job.dependencies, id);
         }
+
+        // Remove from completed jobs.
+        std::erase(m_jobs_completed, id);
+
+        // Finally destroy the job.
+        m_jobs.erase(it);
     }
+
+
+    void Scheduler::exitAll()
+    {
+        for (auto& job : m_jobs)
+        {
+            if (job.exit)
+                job.exit();
+        }
+
+        m_jobs.clear();
+        m_jobs_completed.clear();
+    }
+
 
     void Scheduler::execute()
     {
-        std::vector<JobID> completed;
-        while (completed.size() < m_jobs.size())
+        for (auto& job : m_jobs)
         {
-            for (auto& job : m_jobs)
+            // A completed job doesn't execute again.
+            if (std::find(
+                    m_jobs_completed.begin(),
+                    m_jobs_completed.end(),
+                    job.id
+                ) != m_jobs_completed.end())
             {
-                bool ready = true;
+                continue;
+            }
 
-                for (JobID dependency : job.dependencies)
-                {
-                    if (std::find(
-                        completed.begin(),
-                        completed.end(),
+            bool ready = true;
+
+            for (JobID dependency : job.dependencies)
+            {
+                if (std::find(
+                        m_jobs_completed.begin(),
+                        m_jobs_completed.end(),
                         dependency
-                    ) == completed.end())
-                    {
-                        ready = false;
-                        break;
-                    }
-                }
-
-                if (!ready)
-                    continue;
-
-                if (job.task() > 0)
+                    ) == m_jobs_completed.end())
                 {
-                    completed.push_back(job.id);
-
-                    if (job.exit != nullptr)
-                    {
-                        job.exit();
-                    }
+                    ready = false;
+                    break;
                 }
+            }
+
+            if (!ready)
+                continue;
+
+            const int result = job.task();
+
+            if (result > 0)
+            {
+                m_jobs_completed.push_back(job.id);
+
+                if (job.exit)
+                    job.exit();
             }
         }
     }
