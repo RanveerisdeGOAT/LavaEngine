@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.25)
 
 project(LavaEngine
-        VERSION 0.2.0
+        VERSION 0.3.0
         LANGUAGES CXX
 )
 
@@ -67,6 +67,8 @@ add_library(LavaEngine STATIC
 
         include/LavaEngine/Modules.hpp
         src/Modules.cpp
+        include/LavaEngine/Scheduler.hpp
+        src/Scheduler.cpp
 )
 
 target_include_directories(LavaEngine

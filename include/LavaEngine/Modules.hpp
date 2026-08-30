@@ -7,18 +7,18 @@ namespace LavaEngine
 {
     using namespace LavaVK;
 
-    class Renderer : public Module
+    class RenderingModule : public Module
     {
     public:
 
-        Renderer(
+        RenderingModule(
             Device& device,
             Surface& surface,
             uint32_t width,
             uint32_t height
         );
 
-        ~Renderer() override = default;
+        ~RenderingModule() override = default;
 
         [[nodiscard]] CommandBuffer& getCommandBuffer()
         {
@@ -69,5 +69,56 @@ namespace LavaEngine
 
         uint32_t m_imageIndex = 0;
         size_t m_frameIndex = 0;
+    };
+
+    class GraphicalPiplineModule : public Module
+    {
+    public:
+
+        GraphicalPiplineModule(
+            Device& device,
+            PipelineLayout& layout,
+            RenderPass& renderPass,
+            const std::string& vertexShader,
+            const std::string& fragmentShader,
+            Topology topology = Topology::TRIANGLES,
+            PolygonMode polygonMode = PolygonMode::FILL,
+            CullMode cullMode = CullMode::NONE,
+            FrontFace frontFace = FrontFace::COUNTER_CLOCKWISE,
+            bool depthTest = true,
+            bool depthWrite = true,
+            bool blending = false
+        );
+
+        ~GraphicalPiplineModule() override = default;
+
+        [[nodiscard]]
+        GraphicsPipeline& pipeline()
+        {
+            return m_pipeline;
+        }
+
+        [[nodiscard]]
+        const GraphicsPipeline& pipeline() const
+        {
+            return m_pipeline;
+        }
+
+        [[nodiscard]]
+        const Shader& vertexShader() const
+        {
+            return m_vertexShader;
+        }
+
+        [[nodiscard]]
+        const Shader& fragmentShader() const
+        {
+            return m_fragmentShader;
+        }
+
+    private:
+        Shader m_vertexShader;
+        Shader m_fragmentShader;
+        GraphicsPipeline m_pipeline;
     };
 }

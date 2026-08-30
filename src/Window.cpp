@@ -66,4 +66,45 @@ namespace LavaEngine
             extensions + count
         };
     }
+
+    Window::Window(Window&& other) noexcept
+        : m_window(other.m_window)
+    {
+        other.m_window = nullptr;
+    }
+
+    Window& Window::operator=(Window&& other) noexcept
+    {
+        if (this == &other)
+            return *this;
+
+        // Destroy our current window.
+        if (m_window)
+        {
+            glfwDestroyWindow(m_window);
+        }
+
+        // Take ownership.
+        m_window = other.m_window;
+
+        // Leave the source empty.
+        other.m_window = nullptr;
+
+        return *this;
+    }
+
+    int Window::getWidth() const
+    {
+        int width = 0;
+        glfwGetWindowSize(m_window, &width, nullptr);
+        return width;
+    }
+
+    int Window::getHeight() const
+    {
+        int height = 0;
+        glfwGetWindowSize(m_window, nullptr, &height);
+        return height;
+    }
+
 }

@@ -9,7 +9,7 @@
 #include "Module.hpp"
 #include "Resource.hpp"
 #include "Modules.hpp"
-
+#include "Scheduler.hpp"
 
 namespace LavaEngine
 {
@@ -26,7 +26,17 @@ namespace LavaEngine
 
         ~LavaEngine() = default;
 
-        [[nodiscard]] std::string getName() const;
+        // Non-copyable
+        LavaEngine(const LavaEngine&) = delete;
+        LavaEngine& operator=(const LavaEngine&) = delete;
+
+        // Moveable
+        LavaEngine(LavaEngine&& other) noexcept;
+        LavaEngine& operator=(LavaEngine&& other) noexcept;
+
+        [[nodiscard]]
+        std::string getName() const;
+        void run();
 
         Window* getWindow()
         {
@@ -43,9 +53,20 @@ namespace LavaEngine
             return &m_surface;
         }
 
+        Scheduler* getScheduler()
+        {
+            return &m_scheduler;
+        }
+
+        Device* getDevice()
+        {
+            return &m_device;
+        }
     private:
         Window m_window;
         Instance m_instance;
         Surface m_surface;
+        Device m_device;
+        Scheduler m_scheduler;
     };
 }

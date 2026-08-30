@@ -3,6 +3,7 @@
 #include <unordered_map>
 #include <vector>
 #include <memory>
+#include <algorithm>
 
 
 namespace LavaEngine
@@ -26,6 +27,12 @@ namespace LavaEngine
 
     private:
         friend class Container;
+        friend class ModuleRegistry;
+
+        void setContainer(Container* container)
+        {
+            m_container = container;
+        }
 
         Container* m_container = nullptr;
     };
@@ -41,6 +48,19 @@ namespace LavaEngine
     class ModuleRegistry
     {
     public:
+        explicit ModuleRegistry() = default;
+
+        explicit ModuleRegistry(Container* container)
+        : m_container(container)
+        {}
+
+        ModuleRegistry(const ModuleRegistry&) = delete;
+        ModuleRegistry& operator=(const ModuleRegistry&) = delete;
+
+        ModuleRegistry(ModuleRegistry&& other) noexcept;
+        ModuleRegistry& operator=(ModuleRegistry&& other) noexcept;
+
+
         template <typename T, typename... Args>
         T& add(Args&&... args)
         {
@@ -136,6 +156,7 @@ namespace LavaEngine
         bool empty() const;
 
     private:
+        Container* m_container = nullptr;
         std::unordered_map<TypeID, Module*> m_lookup;
         std::vector<std::unique_ptr<Module>> m_modules;
     };

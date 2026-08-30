@@ -15,14 +15,29 @@ namespace LavaEngine
     {
     public:
         Window(int width, int height, const std::string& name);
+
         ~Window();
 
+        // Copying is not allowed.
         Window(const Window&) = delete;
         Window& operator=(const Window&) = delete;
 
-        [[nodiscard]] GLFWwindow* getGlfwWindow() const;
+        // Moving is allowed.
+        Window(Window&& other) noexcept;
+        Window& operator=(Window&& other) noexcept;
+        [[nodiscard]] int getWidth() const;
+        [[nodiscard]] int getHeight() const;
 
-        static std::vector<const char*> getRequiredInstanceExtensions() ;
+        [[nodiscard]]
+        GLFWwindow* getGlfwWindow() const;
+
+        static std::vector<const char*> getRequiredInstanceExtensions();
+
+        [[nodiscard]]
+        bool shouldClose() const
+        {
+            return glfwWindowShouldClose(getGlfwWindow());
+        }
 
     private:
         GLFWwindow* m_window = nullptr;

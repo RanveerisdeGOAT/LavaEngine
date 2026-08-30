@@ -1,5 +1,7 @@
 #pragma once
+
 #include <string>
+#include <utility>
 
 #include "Module.hpp"
 #include "Resource.hpp"
@@ -14,7 +16,20 @@ namespace LavaEngine
 
         explicit Container(std::string name);
 
-        ~Container() = default;
+        ~Container()
+        {
+            m_modules.clear();
+            m_resources.clear();
+        }
+
+        // Containers cannot be copied.
+        Container(const Container&) = delete;
+        Container& operator=(const Container&) = delete;
+
+        // Containers can be moved.
+        Container(Container&& other) noexcept;
+        Container& operator=(Container&& other) noexcept;
+
 
         template <typename T, typename... Args>
         T& addModule(Args&&... args)
@@ -44,6 +59,7 @@ namespace LavaEngine
         {
             m_modules.remove<T>();
         }
+
 
         template <typename T, typename... Args>
         ResourceHandle createResource(
@@ -102,6 +118,12 @@ namespace LavaEngine
 
             return resource;
         }
+
+        void clearModules()
+        {
+            m_modules.clear();
+        }
+
 
         [[nodiscard]]
         const std::string& name() const;

@@ -1,6 +1,7 @@
 #include "LavaEngine/LavaEngine.hpp"
 
 #include <stdexcept>
+#include <utility>
 
 namespace LavaEngine
 {
@@ -25,7 +26,8 @@ namespace LavaEngine
                           vkInst,
                           m_window.getGlfwWindow(),
                           nullptr,
-                          &surface) != VK_SUCCESS)
+                          &surface
+                      ) != VK_SUCCESS)
                   {
                       throw std::runtime_error(
                           "Failed to create Vulkan surface"
@@ -35,6 +37,47 @@ namespace LavaEngine
                   return surface;
               })
     {
+        const auto& selectedGPU =
+            GPUHardware::selectOptimalGPU(
+                m_instance,
+                m_surface
+            );
+
+        m_device = Device(
+            selectedGPU,
+            {
+                QueueType::GRAPHICS,
+                QueueType::PRESENT
+            },
+            &m_surface
+        );
+    }
+
+    LavaEngine::LavaEngine(
+        LavaEngine&& other
+    ) noexcept
+        : m_window(std::move(other.m_window)),
+          m_instance(std::move(other.m_instance)),
+          m_surface(std::move(other.m_surface)),
+          m_device(std::move(other.m_device)),
+          m_scheduler(std::move(other.m_scheduler))
+    {
+    }
+
+    LavaEngine& LavaEngine::operator=(
+        LavaEngine&& other
+    ) noexcept
+    {
+        if (this == &other)
+            return *this;
+
+        m_device = std::move(other.m_device);
+        m_surface = std::move(other.m_surface);
+        m_instance = std::move(other.m_instance);
+        m_window = std::move(other.m_window);
+        m_scheduler = std::move(other.m_scheduler);
+
+        return *this;
     }
 
     std::string LavaEngine::getName() const
@@ -42,5 +85,11 @@ namespace LavaEngine
         return glfwGetWindowTitle(
             m_window.getGlfwWindow()
         );
+    }
+
+    void LavaEngine::run()
+    {
+        m_scheduler.execute();
+        m_device.waitIdle();
     }
 }

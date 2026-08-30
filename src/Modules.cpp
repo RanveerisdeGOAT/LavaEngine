@@ -2,7 +2,7 @@
 
 namespace LavaEngine
 {
-    Renderer::Renderer(
+    RenderingModule::RenderingModule(
         Device& device,
         Surface& surface,
         uint32_t width,
@@ -44,7 +44,7 @@ namespace LavaEngine
         );
     }
 
-    Result Renderer::acquire()
+    Result RenderingModule::acquire()
     {
         Result result =
             m_swapChain.acquireImage(m_imageIndex);
@@ -61,7 +61,7 @@ namespace LavaEngine
         return result;
     }
 
-    void Renderer::record(const std::function<void(CommandBuffer&)>& cmd)
+    void RenderingModule::record(const std::function<void(CommandBuffer&)>& cmd)
     {
         CommandBuffer& cmdBuffer = getCommandBuffer();
         cmdBuffer.record(
@@ -72,7 +72,7 @@ namespace LavaEngine
         );
     }
 
-    void Renderer::submit(const std::vector<std::reference_wrapper<const Semaphore>>& waitSemaphores, const std::vector<PipelineStage>& waitStages, const std::vector<std::reference_wrapper<const Semaphore>>& signalSemaphores, const Fence* fence) const
+    void RenderingModule::submit(const std::vector<std::reference_wrapper<const Semaphore>>& waitSemaphores, const std::vector<PipelineStage>& waitStages, const std::vector<std::reference_wrapper<const Semaphore>>& signalSemaphores, const Fence* fence) const
     {
         m_device.submit(
             QueueType::GRAPHICS,
@@ -89,5 +89,44 @@ namespace LavaEngine
             },
             &m_swapChain.inFlightFence()
         );
+    }
+
+    GraphicalPiplineModule::GraphicalPiplineModule(
+        Device& device,
+        PipelineLayout& layout,
+        RenderPass& renderPass,
+        const std::string& vertexShader,
+        const std::string& fragmentShader,
+        Topology topology,
+        PolygonMode polygonMode,
+        CullMode cullMode,
+        FrontFace frontFace,
+        bool depthTest,
+        bool depthWrite,
+        bool blending
+    )   : m_vertexShader(device, vertexShader)
+          ,m_fragmentShader(device, fragmentShader),
+          m_pipeline(
+              device,
+              {
+                  .vertexShader = &m_vertexShader,
+                  .fragmentShader = &m_fragmentShader,
+
+                  .layout = &layout,
+                  .renderPass = &renderPass,
+
+                  .topology = topology,
+
+                  .polygonMode = polygonMode,
+                  .cullMode = cullMode,
+                  .frontFace = frontFace,
+
+                  .depthTest = depthTest,
+                  .depthWrite = depthWrite,
+
+                  .blending = blending
+              }
+          )
+    {
     }
 }
