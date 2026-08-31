@@ -2,7 +2,7 @@
 
 namespace LavaEngine
 {
-    RenderingModule::RenderingModule(
+    Renderer::Renderer(
         Device& device,
         Surface& surface,
         uint32_t width,
@@ -44,7 +44,7 @@ namespace LavaEngine
         );
     }
 
-    Result RenderingModule::acquire()
+    Result Renderer::acquire()
     {
         Result result =
             m_swapChain.acquireImage(m_imageIndex);
@@ -61,7 +61,7 @@ namespace LavaEngine
         return result;
     }
 
-    void RenderingModule::record(const std::function<void(CommandBuffer&)>& cmd)
+    void Renderer::record(const std::function<void(CommandBuffer&)>& cmd)
     {
         CommandBuffer& cmdBuffer = getCommandBuffer();
         cmdBuffer.record(
@@ -72,7 +72,7 @@ namespace LavaEngine
         );
     }
 
-    void RenderingModule::submit(const std::vector<std::reference_wrapper<const Semaphore>>& waitSemaphores, const std::vector<PipelineStage>& waitStages, const std::vector<std::reference_wrapper<const Semaphore>>& signalSemaphores, const Fence* fence) const
+    void Renderer::submit(const std::vector<std::reference_wrapper<const Semaphore>>& waitSemaphores, const std::vector<PipelineStage>& waitStages, const std::vector<std::reference_wrapper<const Semaphore>>& signalSemaphores, const Fence* fence) const
     {
         m_device.submit(
             QueueType::GRAPHICS,
@@ -91,7 +91,7 @@ namespace LavaEngine
         );
     }
 
-    GraphicalPiplineModule::GraphicalPiplineModule(
+    GraphicalPipline::GraphicalPipline(
         Device& device,
         PipelineLayout& layout,
         RenderPass& renderPass,

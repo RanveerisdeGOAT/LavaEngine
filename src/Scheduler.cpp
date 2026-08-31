@@ -173,4 +173,12 @@ namespace LavaEngine
             }
         }
     }
+
+    void Scheduler::clear()
+    {
+        exitAll();
+
+        m_jobs.clear();
+        m_jobs_completed.clear();
+    }
 }

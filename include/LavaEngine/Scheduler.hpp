@@ -32,10 +32,12 @@ namespace LavaEngine
         void destroyJob(JobID id);
         void exitAll();
         void execute();
+        void clear();
 
         void dependsOn(JobID id, JobID dependency);
 
     private:
+        friend class Application;
         std::vector<Job> m_jobs;
         std::vector<JobID> m_jobs_completed;
         JobID m_nextID = 0;

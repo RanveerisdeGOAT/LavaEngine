@@ -7,18 +7,18 @@ namespace LavaEngine
 {
     using namespace LavaVK;
 
-    class RenderingModule : public Module
+    class Renderer : public Module
     {
     public:
 
-        RenderingModule(
+        Renderer(
             Device& device,
             Surface& surface,
             uint32_t width,
             uint32_t height
         );
 
-        ~RenderingModule() override = default;
+        ~Renderer() override = default;
 
         [[nodiscard]] CommandBuffer& getCommandBuffer()
         {
@@ -71,12 +71,12 @@ namespace LavaEngine
         size_t m_frameIndex = 0;
     };
 
-    class GraphicalPiplineModule : public Module
+    class GraphicalPipline : public Module
     {
     public:
 
 
-        GraphicalPiplineModule(
+        GraphicalPipline(
             Device& device,
             PipelineLayout& layout,
             RenderPass& renderPass,
@@ -91,7 +91,7 @@ namespace LavaEngine
             bool depthWrite = true,
             bool blending = false
         );
-        ~GraphicalPiplineModule() override = default;
+        ~GraphicalPipline() override = default;
 
         [[nodiscard]]
         GraphicsPipeline& pipeline()

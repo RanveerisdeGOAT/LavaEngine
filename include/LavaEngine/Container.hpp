@@ -5,7 +5,6 @@
 
 #include "Module.hpp"
 #include "Resource.hpp"
-#include "LavaVK/LavaVK.hpp"
 
 namespace LavaEngine
 {
@@ -16,7 +15,7 @@ namespace LavaEngine
 
         explicit Container(std::string name);
 
-        ~Container()
+        virtual ~Container()
         {
             m_modules.clear();
             m_resources.clear();

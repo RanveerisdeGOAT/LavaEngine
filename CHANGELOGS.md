@@ -2,6 +2,12 @@
 
 All notable changes to LavaEngine are documented here.
 
+## [0.5.0-indev] - 31/08/26
+
+### Added:
+* Added Frameworks
+* Added Hot-Reloading
+
 ## [0.4.0-indev] - 30/08/26
 
 ### Added:
