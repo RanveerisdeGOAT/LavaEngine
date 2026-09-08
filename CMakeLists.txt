@@ -11,11 +11,15 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 find_package(Vulkan REQUIRED)
 
+set(GLFW_LIBRARY_TYPE SHARED CACHE STRING "" FORCE)
 add_subdirectory(external/glfw-3.5.1)
+set(IMGUI_DIR
+        ${CMAKE_CURRENT_SOURCE_DIR}/external/imgui
+)
 
 # LavaVK
 
-add_library(LavaVK STATIC
+add_library(LavaVK SHARED
         LavaVK/src/Instance.cpp
         LavaVK/src/Device.cpp
         LavaVK/src/Queue.cpp
@@ -45,7 +49,7 @@ target_link_libraries(LavaVK
 
 # LavaEngine
 
-add_library(LavaEngine STATIC
+add_library(LavaEngine SHARED
         include/LavaEngine/Application.hpp
 
         include/LavaEngine/Window.hpp
@@ -69,11 +73,27 @@ add_library(LavaEngine STATIC
         include/LavaEngine/Framework.h
 
         include/LavaEngine/Frameworks.h
+
+
+
+        ${IMGUI_DIR}/imgui.cpp
+        ${IMGUI_DIR}/imgui_draw.cpp
+        ${IMGUI_DIR}/imgui_tables.cpp
+        ${IMGUI_DIR}/imgui_widgets.cpp
+        ${IMGUI_DIR}/imgui_demo.cpp
+
+
+        ${IMGUI_DIR}/backends/imgui_impl_glfw.cpp
+        ${IMGUI_DIR}/backends/imgui_impl_vulkan.cpp
 )
 
 target_include_directories(LavaEngine
         PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/include
+
+        PRIVATE
+        ${IMGUI_DIR}
+        ${IMGUI_DIR}/backends
 )
 
 target_link_libraries(LavaEngine

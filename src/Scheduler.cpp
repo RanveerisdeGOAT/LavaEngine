@@ -162,7 +162,10 @@ namespace LavaEngine
             if (!ready)
                 continue;
 
+            auto start = std::chrono::high_resolution_clock::now();
             const int result = job.task();
+            auto end = std::chrono::high_resolution_clock::now();
+            job.duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
 
             if (result > 0)
             {

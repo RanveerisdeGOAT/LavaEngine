@@ -30,4 +30,24 @@ namespace LavaEngine
     {
         return m_name;
     }
+
+    void Container::expose(const std::string& name, float* variable)
+    {
+        m_variables.push_back(Variable{name, static_cast<void*>(variable), VarType::Float});
+    }
+
+    void Container::expose(const std::string& name, int* variable)
+    {
+        m_variables.push_back(Variable{name, static_cast<void*>(variable), VarType::Int});
+    }
+
+    void Container::expose(const std::string& name, bool* variable)
+    {
+        m_variables.push_back(Variable{name, static_cast<void*>(variable), VarType::Bool});
+    }
+
+    void Container::expose(const std::string& name, std::string* variable)
+    {
+        m_variables.push_back(Variable{name, static_cast<void*>(variable), VarType::String});
+    }
 }

@@ -1,4 +1,4 @@
-# LavaEngine [0.5.0-indev]
+# LavaEngine [0.6.0-indev]
 
 **LavaEngine** is a modular C++ game framework designed to provide the infrastructure needed to build games and interactive applications without imposing a predefined engine architecture.
 
@@ -183,7 +183,7 @@ Container game;
 
 game.addModule<ECS>();
 game.addModule<Physics>();
-game.addModule<Renderer>();
+game.addModule<GraphicalPipline>();
 ```
 
 A different Container might only require:

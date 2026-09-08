@@ -132,6 +132,14 @@ namespace LavaEngine
 
         bool empty() const;
 
+        [[nodiscard]]
+        const std::unordered_map<ResourceID, std::unique_ptr<Resource>>& all() const
+        {
+            return m_resources;
+        }
+
+
+
     private:
         std::unordered_map<
             ResourceID,

@@ -5,8 +5,17 @@ project(lavac
         LANGUAGES CXX
 )
 
+
+
 add_executable(lavac
         src/main.cpp
+        inspector/src/Inspector.h
+        src/lavac.h
+)
+
+target_include_directories(lavac PRIVATE
+        ${IMGUI_DIR}
+        ${IMGUI_DIR}/backends
 )
 
 target_link_libraries(lavac PRIVATE

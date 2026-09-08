@@ -25,6 +25,8 @@ namespace LavaEngine
             return *m_container;
         }
 
+        virtual void imgui() const = 0;
+
     private:
         friend class Container;
         friend class ModuleRegistry;
@@ -154,6 +156,13 @@ namespace LavaEngine
         void clear();
         std::uint32_t size() const;
         bool empty() const;
+
+        [[nodiscard]]
+        const std::vector<std::unique_ptr<Module>>& all() const
+        {
+            return m_modules;
+        }
+
 
     private:
         Container* m_container = nullptr;

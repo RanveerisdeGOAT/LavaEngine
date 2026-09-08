@@ -2,6 +2,12 @@
 
 All notable changes to LavaEngine are documented here.
 
+
+## [0.6.0-indev] - 08/09/26
+
+### Added:
+* Added Inspector
+
 ## [0.5.0-indev] - 31/08/26
 
 ### Added:

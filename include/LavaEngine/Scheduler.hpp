@@ -1,4 +1,5 @@
 #pragma once
+#include <chrono>
 #include <functional>
 #include <memory>
 
@@ -12,6 +13,7 @@ namespace LavaEngine
         std::function<int()> task;
         std::function<void()> exit;
         std::vector<JobID> dependencies;
+        std::chrono::microseconds duration;
     };
 
     class Scheduler
@@ -35,6 +37,10 @@ namespace LavaEngine
         void clear();
 
         void dependsOn(JobID id, JobID dependency);
+
+        [[nodiscard]] std::size_t jobCount() const { return m_jobs.size(); }
+        [[nodiscard]] std::vector<Job> jobs() const { return m_jobs; }
+        [[nodiscard]] std::size_t completedJobCount() const { return m_jobs_completed.size(); }
 
     private:
         friend class Application;

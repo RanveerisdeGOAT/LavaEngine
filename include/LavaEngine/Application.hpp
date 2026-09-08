@@ -73,8 +73,15 @@ namespace LavaEngine
             return ref;
         }
 
+        [[nodiscard]]
+        const std::vector<std::unique_ptr<Container>>& containers() const
+        {
+            return m_containers;
+        }
+
+
         template <typename T, typename... Args>
-        T& addFramework(Args&&... args)
+        T& setFramework(Args&&... args)
         {
             auto framework =
                 std::make_unique<T>(
@@ -82,27 +89,17 @@ namespace LavaEngine
                     std::forward<Args>(args)...
                 );
 
-            T& reference = *framework;
+            T& ref = *framework;
 
-            m_frameworks.push_back(
-                std::move(framework)
-            );
+            m_framework = std::move(framework);
 
-            return reference;
+            return ref;
         }
 
         template <typename T>
         T* findFramework()
         {
-            for (auto& framework : m_frameworks)
-            {
-                if (auto* result = dynamic_cast<T*>(framework.get()))
-                {
-                    return result;
-                }
-            }
-
-            return nullptr;
+            return dynamic_cast<T*>(m_framework.get());
         }
 
         template <typename T>
@@ -126,14 +123,10 @@ namespace LavaEngine
 
         void unloadGame()
         {
-            // Shutdown all frameworks before destroying containers.
-            for (auto& framework : m_frameworks)
-                framework->shutdown();
-
+            if (m_framework) m_framework->shutdown();
             m_scheduler.clear();
             m_containers.clear();
-
-            m_frameworks.clear();
+            if (m_framework) m_framework.reset();   // prevents a second shutdown() call
         }
 
     private:
@@ -145,14 +138,12 @@ namespace LavaEngine
             m_shutdown = true;
 
             unloadGame();
-
-
         }
 
         Scheduler m_scheduler;
 
         std::vector<std::unique_ptr<Container>> m_containers;
-        std::vector<std::unique_ptr<Framework>> m_frameworks;
+        std::unique_ptr<Framework> m_framework;
 
         bool m_shutdown = false;
     };

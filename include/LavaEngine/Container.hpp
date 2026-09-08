@@ -8,6 +8,24 @@
 
 namespace LavaEngine
 {
+
+    enum class VarType
+    {
+        Float,
+        Int,
+        Bool,
+        String,
+        Double,
+    };
+
+    struct Variable
+    {
+        std::string name;
+        void* ptr;
+        VarType type;
+    };
+
+
     class Container
     {
     public:
@@ -127,10 +145,40 @@ namespace LavaEngine
         [[nodiscard]]
         const std::string& name() const;
 
+        // Read-only access to this container's registries, for tooling
+        // (e.g. the Inspector). Gameplay code should prefer the
+        // add/get/has/remove Module/Resource helpers above instead.
+        [[nodiscard]]
+        const ModuleRegistry& modules() const
+        {
+            return m_modules;
+        }
+
+        [[nodiscard]]
+        const ResourceRegistry& resources() const
+        {
+            return m_resources;
+        }
+
+        virtual void imgui() {}
+
+        void expose(const std::string& name, float* variable);
+        void expose(const std::string& name, int* variable);
+        void expose(const std::string& name, bool* variable);
+        void expose(const std::string& name, std::string* variable);
+
+        [[nodiscard]]
+        std::vector<Variable>& variables()
+        {
+            return m_variables;
+        }
+
+
     private:
         std::string m_name;
 
         ModuleRegistry m_modules;
         ResourceRegistry m_resources;
+        std::vector<Variable> m_variables;
     };
 }
