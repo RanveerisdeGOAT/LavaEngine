@@ -11,6 +11,7 @@ add_executable(lavac
         src/main.cpp
         inspector/src/Inspector.h
         src/lavac.h
+        ${IMGUI_DIR}/misc/cpp/imgui_stdlib.cpp
 )
 
 target_include_directories(lavac PRIVATE

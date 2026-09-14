@@ -54,21 +54,39 @@ namespace LavaEngine
         }
 
         [[nodiscard]]
+        VertexLayout& vertexLayout()
+        {
+            return *m_vertexLayout;
+        }
+
+        [[nodiscard]]
         const VertexLayout& vertexLayout() const
         {
-            return m_vertexLayout;
+            return *m_vertexLayout;
+        }
+
+        [[nodiscard]]
+        RenderPass& renderPass()
+        {
+            return *m_renderPass;
         }
 
         [[nodiscard]]
         const RenderPass& renderPass() const
         {
-            return m_renderPass;
+            return *m_renderPass;
+        }
+
+        [[nodiscard]]
+        PipelineLayout& pipelineLayout()
+        {
+            return *m_layout;
         }
 
         [[nodiscard]]
         const PipelineLayout& pipelineLayout() const
         {
-            return m_layout;
+            return *m_layout;
         }
 
         void imgui() const override;
@@ -77,9 +95,11 @@ namespace LavaEngine
         Shader m_vertexShader;
         Shader m_fragmentShader;
         GraphicsPipeline m_pipeline;
-        PipelineLayout& m_layout;
-        RenderPass& m_renderPass;
-        VertexLayout& m_vertexLayout;
+
+        PipelineLayout* m_layout;
+        RenderPass* m_renderPass;
+        VertexLayout* m_vertexLayout;
+
         std::string m_vertexShaderFile;
         std::string m_fragmentShaderFile;
     };

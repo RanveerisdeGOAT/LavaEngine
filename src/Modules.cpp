@@ -42,9 +42,9 @@ namespace LavaEngine
                 .blending = blending
             }
         ),
-        m_layout(layout),
-        m_renderPass(renderPass),
-        m_vertexLayout(vertex_layout),
+        m_layout(&layout),
+        m_renderPass(&renderPass),
+        m_vertexLayout(&vertex_layout),
         m_vertexShaderFile(vertexShader),
         m_fragmentShaderFile(fragmentShader)
     {

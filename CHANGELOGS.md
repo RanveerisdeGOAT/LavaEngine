@@ -2,6 +2,15 @@
 
 All notable changes to LavaEngine are documented here.
 
+## [0.7.0-indev] - 14/09/26
+
+### Added:
+* Notable improvements to the inspector.
+    - Logger
+    - Explorer
+    - File Inspector
+* Added Logger
+* Added InputHandler
 
 ## [0.6.0-indev] - 08/09/26
 

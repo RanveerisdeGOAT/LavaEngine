@@ -10,8 +10,9 @@
 
 #include "Window.hpp"
 #include "Container.hpp"
-#include "Framework.h"
-#include "Frameworks.h"
+#include "Framework.hpp"
+#include "Frameworks.hpp"
+#include "Logger.hpp"
 #include "Module.hpp"
 #include "Resource.hpp"
 #include "Modules.hpp"
@@ -121,6 +122,11 @@ namespace LavaEngine
             return &m_scheduler;
         }
 
+        Logger* getLogger()
+        {
+            return &m_logger;
+        }
+
         void unloadGame()
         {
             if (m_framework) m_framework->shutdown();
@@ -141,6 +147,7 @@ namespace LavaEngine
         }
 
         Scheduler m_scheduler;
+        Logger m_logger;
 
         std::vector<std::unique_ptr<Container>> m_containers;
         std::unique_ptr<Framework> m_framework;

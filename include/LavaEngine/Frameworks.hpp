@@ -6,7 +6,7 @@
 
 #include <GLFW/glfw3.h>
 
-#include "Framework.h"
+#include "Framework.hpp"
 #include "LavaVK/LavaVK.hpp"
 #include "Window.hpp"
 

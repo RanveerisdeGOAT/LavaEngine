@@ -4,35 +4,58 @@
 
 namespace LavaEngine
 {
+    namespace
+    {
+        // Extracted so glfwInit()/glfwCreateWindow() can run as part of
+        // m_window's initializer, instead of in the constructor body.
+        // Members construct in declaration order (m_window before
+        // m_inputHandler) - if this ran in the body instead, m_inputHandler
+        // would already have been constructed with m_window still null
+        // (its default member initializer), and InputHandler caches that
+        // null GLFWwindow* forever since it doesn't hold a live reference
+        // back to Window.
+        GLFWwindow* createGlfwWindow(
+            int width,
+            int height,
+            const std::string& name
+        )
+        {
+            if (!glfwInit())
+                throw std::runtime_error(
+                    "Failed to initialize GLFW"
+                );
+
+            glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+
+            GLFWwindow* window = glfwCreateWindow(
+                width,
+                height,
+                name.c_str(),
+                nullptr,
+                nullptr
+            );
+
+            if (!window)
+            {
+                glfwTerminate();
+
+                throw std::runtime_error(
+                    "Failed to create GLFW window"
+                );
+            }
+
+            return window;
+        }
+    }
+
     Window::Window(
         int width,
         int height,
         const std::string& name
     )
+        : m_window(createGlfwWindow(width, height, name)),
+          m_inputHandler(*this)
     {
-        if (!glfwInit())
-            throw std::runtime_error(
-                "Failed to initialize GLFW"
-            );
-
-        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-
-        m_window = glfwCreateWindow(
-            width,
-            height,
-            name.c_str(),
-            nullptr,
-            nullptr
-        );
-
-        if (!m_window)
-        {
-            glfwTerminate();
-
-            throw std::runtime_error(
-                "Failed to create GLFW window"
-            );
-        }
     }
 
     Window::~Window()
@@ -68,9 +91,10 @@ namespace LavaEngine
     }
 
     Window::Window(Window&& other) noexcept
-        : m_window(other.m_window)
+        : m_window(other.m_window), m_inputHandler(std::move(other.m_inputHandler))
     {
         other.m_window = nullptr;
+
     }
 
     Window& Window::operator=(Window&& other) noexcept
@@ -78,16 +102,12 @@ namespace LavaEngine
         if (this == &other)
             return *this;
 
-        // Destroy our current window.
         if (m_window)
-        {
             glfwDestroyWindow(m_window);
-        }
 
-        // Take ownership.
         m_window = other.m_window;
+        m_inputHandler = std::move(other.m_inputHandler);
 
-        // Leave the source empty.
         other.m_window = nullptr;
 
         return *this;

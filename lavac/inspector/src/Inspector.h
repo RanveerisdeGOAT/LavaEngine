@@ -4,10 +4,16 @@
 #include <array>
 #include <cfloat>
 #include <chrono>
+#include <cstdint>
+#include <cstdio>
+#include <filesystem>
+#include <fstream>
+#include <iterator>
 #include <memory>
 #include <stdexcept>
 #include <string>
 #include <typeinfo>
+#include <vector>
 
 #if defined(__GNUG__)
 #include <cxxabi.h>
@@ -18,8 +24,11 @@
 #include <../../external/imgui/imgui.h>
 #include <../../external/imgui/backends/imgui_impl_glfw.h>
 #include <../../external/imgui/backends/imgui_impl_vulkan.h>
+#include <../../external/imgui/misc/cpp/imgui_stdlib.h>
 
 #include "../../src/lavac.h"
+
+#include <LavaEngine/Logger.hpp>
 
 namespace LavaEngine
 {
@@ -287,11 +296,22 @@ namespace LavaEngine
 
             drawVulkanPanel();
 
+            drawExplorerPanel();
+
+            drawFilePanel();
+
             drawViewport();
 
             drawContainersPanel();
 
             drawPerformancePanel();
+
+            drawLoggingPanel();
+
+            if (vulkan->window().getInputHandler().isKeyPressed(GLFW_KEY_F1))
+            {
+                vulkan->window().getInputHandler().focus();
+            }
         }
 
 
@@ -660,6 +680,128 @@ namespace LavaEngine
             ImGui::End();
         }
 
+        void drawLoggingPanel()
+        {
+            if (ImGui::Begin("Logging"))
+            {
+                const std::vector<LogEntry> entries = m_application.application().getLogger()->entries();
+
+                ImGui::Text("Messages: %zu", entries.size());
+
+                ImGui::SameLine();
+
+                if (ImGui::Button("Clear"))
+                {
+                    m_application.application().getLogger()->clearHistory();
+                }
+
+                ImGui::SameLine();
+
+                ImGui::Checkbox("Auto-scroll", &m_logAutoScroll);
+
+                ImGui::Separator();
+
+                const char* levelNames[] = {"Trace", "Info", "Warning", "Error", "Fatal", "Debug"};
+
+                ImGui::SetNextItemWidth(120.0f);
+
+                if (ImGui::BeginCombo("##level_filter", levelNames[m_logFilterLevel]))
+                {
+                    for (int i = 0; i < 5; ++i)
+                    {
+                        const bool selected = (m_logFilterLevel == i);
+
+                        if (ImGui::Selectable(levelNames[i], selected))
+                            m_logFilterLevel = i;
+
+                        if (selected)
+                            ImGui::SetItemDefaultFocus();
+                    }
+
+                    ImGui::EndCombo();
+                }
+
+                ImGui::SameLine();
+
+                ImGui::TextDisabled("(minimum level)");
+
+                ImGui::Separator();
+
+                if (ImGui::BeginChild(
+                    "##log_entries",
+                    ImVec2(0, 0),
+                    ImGuiChildFlags_Borders
+                ))
+                {
+                    for (const LogEntry& entry : entries)
+                    {
+                        if (static_cast<int>(entry.level) < m_logFilterLevel)
+                            continue;
+
+                        ImGui::PushStyleColor(
+                            ImGuiCol_Text,
+                            logColorForLevel(entry.level)
+                        );
+
+                        ImGui::TextWrapped(
+                            "[%s] [%s] %s",
+                            entry.timestamp.c_str(),
+                            logLevelName(entry.level),
+                            entry.message.c_str()
+                        );
+
+                        ImGui::PopStyleColor();
+                    }
+
+                    // Only re-pin to the bottom while the user is already
+                    // at (or near) the bottom, so scrolling up to read
+                    // history isn't fought by Auto-scroll.
+                    const bool atBottom =
+                        ImGui::GetScrollY() >=
+                        ImGui::GetScrollMaxY() - 2.0f;
+
+                    if (m_logAutoScroll && atBottom)
+                    {
+                        ImGui::SetScrollHereY(1.0f);
+                    }
+                }
+
+                ImGui::EndChild();
+            }
+
+            ImGui::End();
+        }
+
+        static const char* logLevelName(LogLevel level)
+        {
+            switch (level)
+            {
+                case LogLevel::Trace:   return "Trace";
+                case LogLevel::Info:    return "Info";
+                case LogLevel::Warning: return "Warning";
+                case LogLevel::Error:   return "Error";
+                case LogLevel::Fatal:   return "Fatal";
+                case LogLevel::Debug:   return "Debug";
+            }
+
+            return "Unknown";
+        }
+
+        static ImU32 logColorForLevel(LogLevel level)
+        {
+            switch (level)
+            {
+                case LogLevel::Trace:   return IM_COL32(160, 160, 160, 255);
+                case LogLevel::Info:    return IM_COL32(80, 115, 250, 255);
+                case LogLevel::Warning: return IM_COL32(240, 200, 80, 255);
+                case LogLevel::Error:   return IM_COL32(235, 50, 60, 255);
+                case LogLevel::Fatal:   return IM_COL32(205, 10, 20, 255);
+                case LogLevel::Debug:   return IM_COL32(90, 200, 120, 255);
+            }
+
+            return IM_COL32(255, 255, 255, 255);
+        }
+
         static void drawModulesNode(const ModuleRegistry& modules)
         {
             const std::string header =
@@ -775,6 +917,343 @@ namespace LavaEngine
             ImGui::End();
         }
 
+        void drawExplorerPanel()
+        {
+            if (ImGui::Begin("Explorer"))
+            {
+                ImGui::PushID("Explorer");
+
+                ImGui::Text(
+                    "Path: %s",
+                    m_explorerPath.string().c_str()
+                );
+
+                if (ImGui::Button("<- Up"))
+                {
+                    if (m_explorerPath.has_parent_path())
+                    {
+                        m_explorerPath = m_explorerPath.parent_path();
+                    }
+                }
+
+                ImGui::SameLine();
+
+                static char pathBuffer[4096];
+
+                ImGui::SetNextItemWidth(-FLT_MIN);
+
+                if (ImGui::InputText(
+                    "##path",
+                    pathBuffer,
+                    sizeof(pathBuffer),
+                    ImGuiInputTextFlags_EnterReturnsTrue
+                ))
+                {
+                    std::filesystem::path newPath(pathBuffer);
+                    std::error_code ec;
+
+                    if (std::filesystem::is_directory(newPath, ec))
+                    {
+                        m_explorerPath = newPath;
+                    }
+                }
+                // Only mirror the current path while the field is not
+                // being edited, otherwise typing would be overwritten.
+                else if (!ImGui::IsItemActive())
+                {
+                    std::snprintf(
+                        pathBuffer,
+                        sizeof(pathBuffer),
+                        "%s",
+                        m_explorerPath.string().c_str()
+                    );
+                }
+
+                ImGui::Separator();
+
+                if (ImGui::BeginChild(
+                    "##explorer_list",
+                    ImVec2(0, 0),
+                    ImGuiChildFlags_Borders
+                ))
+                {
+                    drawExplorerDirectory(m_explorerPath);
+                }
+
+                ImGui::EndChild();
+
+                ImGui::PopID();
+            }
+
+            ImGui::End();
+        }
+
+        /**
+         * @brief Recursively draws the contents of @p path. Directories
+         * appear as collapsible tree nodes (directories first, then
+         * files, alphabetical). Symlinks are listed but not followed, so
+         * recursive listing cannot loop forever.
+         */
+        void drawExplorerDirectory(const std::filesystem::path& path)
+        {
+            std::error_code ec;
+
+            std::vector<std::filesystem::directory_entry> entries;
+
+            for (std::filesystem::directory_iterator it(
+                path,
+                std::filesystem::directory_options::skip_permission_denied,
+                ec
+            ), end;
+                 it != end; it.increment(ec))
+            {
+                if (ec)
+                {
+                    ec.clear();
+                    continue;
+                }
+
+                entries.push_back(*it);
+            }
+
+            std::sort(
+                entries.begin(),
+                entries.end(),
+                [](const auto& a, const auto& b)
+                {
+                    const bool aDir = a.is_directory();
+                    const bool bDir = b.is_directory();
+
+                    if (aDir != bDir)
+                        return aDir;
+
+                    return a.path().filename().string() <
+                           b.path().filename().string();
+                }
+            );
+
+            for (const auto& entry : entries)
+            {
+                const std::filesystem::path& entryPath = entry.path();
+                const std::string name = entryPath.filename().string();
+
+                std::error_code entryEc;
+
+                if (entry.is_symlink(entryEc) && !entryEc)
+                {
+                    ImGui::TextDisabled(
+                        "%s (symlink)",
+                        name.c_str()
+                    );
+                    continue;
+                }
+
+                ImGui::PushID(entryPath.c_str());
+
+                if (entry.is_directory(entryEc) && !entryEc)
+                {
+                    const bool open = ImGui::TreeNodeEx(
+                        name.c_str(),
+                        ImGuiTreeNodeFlags_SpanAvailWidth
+                    );
+
+                    if (open)
+                    {
+                        drawExplorerDirectory(entryPath);
+                        ImGui::TreePop();
+                    }
+                }
+                else
+                {
+                    const bool isSelected =
+                        (entryPath == m_explorerSelected);
+
+                    if (ImGui::Selectable(name.c_str(), isSelected))
+                    {
+                        m_explorerSelected = entryPath;
+                    }
+                }
+
+                ImGui::PopID();
+            }
+        }
+
+        /**
+         * @brief Editable preview of the file currently selected in the
+         * Explorer. Content is loaded lazily when the selection changes,
+         * edited in place, and written back to disk on Save.
+         */
+        void drawFilePanel()
+        {
+            if (ImGui::Begin("File"))
+            {
+                if (m_explorerSelected.empty())
+                {
+                    ImGui::TextDisabled(
+                        "Select a file in the Explorer to view or "
+                        "edit it."
+                    );
+
+                    ImGui::End();
+                    return;
+                }
+
+                std::error_code ec;
+
+                if (!std::filesystem::is_regular_file(
+                    m_explorerSelected,
+                    ec
+                ) || ec)
+                {
+                    ImGui::TextDisabled(
+                        "Selection is not a regular file."
+                    );
+
+                    ImGui::End();
+                    return;
+                }
+
+                // Load the buffer the first time a (new) file is picked.
+                if (m_filePanelCurrentPath != m_explorerSelected)
+                {
+                    loadFilePanel();
+                }
+
+                ImGui::TextWrapped(
+                    "File: %s",
+                    m_explorerSelected.string().c_str()
+                );
+
+                if (ImGui::Button("Reload"))
+                {
+                    loadFilePanel();
+                }
+
+                if (ImGui::IsItemHovered())
+                {
+                    ImGui::SetTooltip(
+                        "Re-read the file from disk, discarding "
+                        "unsaved changes."
+                    );
+                }
+
+                if (m_filePanelDirty)
+                {
+                    ImGui::SameLine();
+                    ImGui::TextColored(
+                        ImVec4(1.0f, 0.75f, 0.10f, 1.0f),
+                        "(modified)"
+                    );
+                }
+
+                ImGui::SameLine();
+
+                if (ImGui::Button(
+                    m_filePanelDirty ? "Save" : "Save (up to date)"
+                ))
+                {
+                    saveFilePanel();
+                }
+
+                ImGui::Separator();
+
+                if (m_filePanelUnsupported)
+                {
+                    ImGui::TextWrapped(
+                        "This file cannot be opened for editing "
+                        "(too large or not readable)."
+                    );
+
+                    ImGui::End();
+                    return;
+                }
+
+                if (ImGui::InputTextMultiline(
+                    "##file_content",
+                    &m_filePanelContent,
+                    ImVec2(-FLT_MIN, -FLT_MIN),
+                    ImGuiInputTextFlags_AllowTabInput
+                ))
+                {
+                    m_filePanelDirty = true;
+                }
+            }
+
+            ImGui::End();
+        }
+
+        /**
+         * @brief Reads the currently selected explorer file into the
+         * editing buffer, resetting the modified flag.
+         */
+        void loadFilePanel()
+        {
+            m_filePanelCurrentPath = m_explorerSelected;
+            m_filePanelContent.clear();
+            m_filePanelDirty = false;
+            m_filePanelUnsupported = false;
+
+            std::error_code ec;
+
+            const std::uintmax_t size =
+                std::filesystem::file_size(
+                    m_filePanelCurrentPath,
+                    ec
+                );
+
+            if (ec || size > kMaxEditFileBytes)
+            {
+                m_filePanelUnsupported = true;
+                return;
+            }
+
+            std::ifstream stream(
+                m_filePanelCurrentPath,
+                std::ios::binary
+            );
+
+            if (!stream)
+            {
+                m_filePanelUnsupported = true;
+                return;
+            }
+
+            m_filePanelContent.assign(
+                std::istreambuf_iterator<char>(stream),
+                std::istreambuf_iterator<char>()
+            );
+        }
+
+        /**
+         * @brief Writes the editing buffer back to the selected file.
+         * The modified flag is only cleared on a successful write.
+         */
+        void saveFilePanel()
+        {
+            if (m_explorerSelected.empty())
+                return;
+
+            std::ofstream stream(
+                m_explorerSelected,
+                std::ios::binary | std::ios::trunc
+            );
+
+            if (!stream)
+                return;
+
+            stream.write(
+                m_filePanelContent.data(),
+                static_cast<std::streamsize>(
+                    m_filePanelContent.size()
+                )
+            );
+
+            if (stream)
+            {
+                m_filePanelDirty = false;
+            }
+        }
+
         /**
          * @brief Shows the swapchain's active present mode and a V-Sync
          * checkbox that toggles between it and Immediate (no vsync).
@@ -870,6 +1349,15 @@ namespace LavaEngine
                             static_cast<float>(m_viewportHeight)
                         )
                     );
+                }
+                // Did the user click the viewport?
+                if (ImGui::IsWindowFocused())
+                {
+                    vulkan->window().getInputHandler().focus();
+                }
+                else
+                {
+                    vulkan->window().getInputHandler().unfocus();
                 }
             }
 
@@ -1117,6 +1605,18 @@ namespace LavaEngine
         uint32_t m_viewportWidth = 0;
         uint32_t m_viewportHeight = 0;
 
+        std::filesystem::path m_explorerPath =
+            std::filesystem::current_path();
+
+        std::filesystem::path m_explorerSelected;
+
+        std::filesystem::path m_filePanelCurrentPath;
+        std::string m_filePanelContent;
+        bool m_filePanelDirty = false;
+        bool m_filePanelUnsupported = false;
+
+        static constexpr std::uintmax_t kMaxEditFileBytes = 10'000'000;
+
         std::unique_ptr<RenderPass> m_viewportRenderPass;
         std::unique_ptr<Texture> m_viewportColor;
         std::unique_ptr<Image> m_viewportDepth;
@@ -1133,5 +1633,8 @@ namespace LavaEngine
         std::unordered_map<JobID, std::array<float, 120>> m_jobHistoryMs;
         std::unordered_map<JobID, std::size_t> m_jobHistoryCursor;
         std::size_t m_jobHistorySamples = 0; // shared cursor/sample count across all jobs
+
+        bool m_logAutoScroll = true;
+        int m_logFilterLevel = 0;   // index into levelNames[] (LavaEngine::LogLevel order)
     };
 }

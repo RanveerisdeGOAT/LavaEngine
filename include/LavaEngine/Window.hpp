@@ -7,6 +7,8 @@
 #include "LavaVK/LavaVK.hpp"
 #include <GLFW/glfw3.h>
 
+#include "InputHandler.hpp"
+
 namespace LavaEngine
 {
     using namespace LavaVK;
@@ -34,12 +36,39 @@ namespace LavaEngine
         static std::vector<const char*> getRequiredInstanceExtensions();
 
         [[nodiscard]]
+        InputHandler& getInputHandler()
+        {
+            return m_inputHandler;
+        }
+
+        [[nodiscard]]
+        const InputHandler& getInputHandler() const
+        {
+            return m_inputHandler;
+        }
+
+        [[nodiscard]]
         bool shouldClose() const
         {
             return glfwWindowShouldClose(getGlfwWindow());
         }
 
+        [[nodiscard]]
+        float getTime() const
+        {
+            return static_cast<float>(glfwGetTime());
+        }
+
+        float tick()
+        {
+            const float dt = getTime() - m_lastFrameTime;
+            m_lastFrameTime = getTime();
+            return dt;
+        }
+
     private:
         GLFWwindow* m_window = nullptr;
+        InputHandler m_inputHandler;
+        float m_lastFrameTime = 0;
     };
 }

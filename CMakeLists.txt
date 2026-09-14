@@ -70,9 +70,12 @@ add_library(LavaEngine SHARED
         include/LavaEngine/Scheduler.hpp
         src/Scheduler.cpp
 
-        include/LavaEngine/Framework.h
+        include/LavaEngine/Framework.hpp
 
-        include/LavaEngine/Frameworks.h
+        include/LavaEngine/Frameworks.hpp
+
+        include/LavaEngine/Logger.hpp
+        src/Logger.cpp
 
 
 
@@ -85,6 +88,8 @@ add_library(LavaEngine SHARED
 
         ${IMGUI_DIR}/backends/imgui_impl_glfw.cpp
         ${IMGUI_DIR}/backends/imgui_impl_vulkan.cpp
+        include/LavaEngine/InputHandler.hpp
+        src/InputHandler.cpp
 )
 
 target_include_directories(LavaEngine

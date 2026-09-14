@@ -160,7 +160,7 @@ namespace LavaEngine
             return m_resources;
         }
 
-        virtual void imgui() {}
+        virtual void imgui() const {}
 
         void expose(const std::string& name, float* variable);
         void expose(const std::string& name, int* variable);
