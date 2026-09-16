@@ -22,6 +22,7 @@ namespace LavaEngine
 
     Scheduler::Scheduler(Scheduler&& other) noexcept
         : m_jobs(std::move(other.m_jobs)),
+          m_jobs_completed(std::move(other.m_jobs_completed)),
           m_nextID(other.m_nextID)
     {
         other.m_nextID = 0;
@@ -33,6 +34,7 @@ namespace LavaEngine
             return *this;
 
         m_jobs = std::move(other.m_jobs);
+        m_jobs_completed = std::move(other.m_jobs_completed);
         m_nextID = other.m_nextID;
 
         other.m_nextID = 0;

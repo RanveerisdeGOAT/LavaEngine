@@ -47,6 +47,7 @@ namespace LavaEngine
         void focus()
         {
             if (m_focused) return;
+            if (!m_window) return;
             m_focused = true;
 
             glfwSetInputMode(
@@ -61,6 +62,7 @@ namespace LavaEngine
         void unfocus()
         {
             if (!m_focused) return;
+            if (!m_window) return;
             m_focused = false;
 
             glfwSetInputMode(

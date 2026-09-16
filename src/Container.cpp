@@ -9,7 +9,8 @@ namespace LavaEngine
     Container::Container(Container&& other) noexcept
         : m_name(std::move(other.m_name)),
           m_modules(std::move(other.m_modules)),
-          m_resources(std::move(other.m_resources))
+          m_resources(std::move(other.m_resources)),
+          m_variables(std::move(other.m_variables))
     {
     }
 
@@ -22,6 +23,7 @@ namespace LavaEngine
         m_name = std::move(other.m_name);
         m_modules = std::move(other.m_modules);
         m_resources = std::move(other.m_resources);
+        m_variables = std::move(other.m_variables);
 
         return *this;
     }

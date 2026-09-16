@@ -218,6 +218,14 @@ namespace LavaEngine
         void shutdown() override
         {
             device().waitIdle();
+
+            // The overlay callback and offscreen pointers may capture
+            // references to container-owned objects; release them here so
+            // no dangling references survive the container teardown that
+            // follows shutdown() in Application::unloadGame().
+            m_overlayCallback = nullptr;
+            m_offscreenFramebuffer = nullptr;
+            m_offscreenRenderPass = nullptr;
         }
 
         Application& application() const

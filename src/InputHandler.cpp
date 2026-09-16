@@ -53,6 +53,7 @@ namespace LavaEngine
     {
         glfwPollEvents();
         if (!m_focused) return;
+        if (!m_window) return;
         m_previousKeys = m_currentKeys;
         m_previousMouseButtons = m_currentMouseButtons;
         m_previousMousePosition = m_mousePosition;
@@ -137,6 +138,9 @@ namespace LavaEngine
 
     void InputHandler::setCursorMode(int mode) const
     {
+        if (!m_window)
+            return;
+
         glfwSetInputMode(m_window, GLFW_CURSOR, mode);
     }
 }
