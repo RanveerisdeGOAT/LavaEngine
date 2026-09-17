@@ -7,6 +7,20 @@ namespace LavaEngine
 {
     using namespace LavaVK;
 
+    /**
+     * @brief Module that wraps a compiled graphics pipeline for a Container.
+     * @detail Owns the vertex/fragment Shaders and the GraphicsPipeline
+     * built from the supplied render pass, pipeline layout and vertex layout.
+     * @note Ownership: Owned by a Container via its ModuleRegistry. The
+     * module owns its shaders and pipeline; it borrows the Device,
+     * PipelineLayout, RenderPass and VertexLayout used at construction, so
+     * those must outlive the module.
+     * @example
+     * @code
+     * world.addModule<GraphicalPipline>(
+     *     device, layout, renderPass, vertexLayout, "main.vert", "main.frag");
+     * @endcode
+     */
     class GraphicalPipline : public Module
     {
     public:

@@ -5,35 +5,51 @@ namespace LavaEngine
     bool ResourceRegistry::contains(ResourceHandle handle) const
     {
         return handle.valid()
-            && m_resources.contains(handle.id());
+            && m_storage
+            && findEntry(handle) != nullptr;
     }
 
 
     void ResourceRegistry::remove(ResourceHandle handle)
     {
-        if (!handle.valid())
+        if (!handle.valid() || !m_storage)
             return;
 
-        m_resources.erase(handle.id());
+        auto it = m_storage->resources.find(handle.id());
+
+        if (it == m_storage->resources.end())
+            return;
+
+        if (it->second.generation != handle.generation())
+            return;
+
+        m_storage->resources.erase(it);
     }
 
 
     void ResourceRegistry::clear()
     {
-        m_resources.clear();
+        if (!m_storage)
+            return;
+
+        m_storage->resources.clear();
     }
 
 
     [[nodiscard]]
     std::size_t ResourceRegistry::size() const
     {
-        return m_resources.size();
+        return m_storage
+            ? m_storage->resources.size()
+            : 0;
     }
 
 
     [[nodiscard]]
     bool ResourceRegistry::empty() const
     {
-        return m_resources.empty();
+        return m_storage
+            ? m_storage->resources.empty()
+            : true;
     }
 }

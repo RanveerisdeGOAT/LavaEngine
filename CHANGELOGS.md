@@ -1,12 +1,28 @@
-# Changelog
+# LavaEngine - Changelog
 
-> Snapshot: 2026-09-17
->
-> Repository: https://github.com/RanveerisdeGOAT/LavaEngine
->
-> Version observed: 0.7.2-indev
+> **Snapshot**: 2026-09-17
+> **Repository**: https://github.com/RanveerisdeGOAT/LavaEngine
+> **Version observed**: 0.7.2-indev
 >
 > This file contains all notable changes to LavaEngine are documented here.
+
+## [0.8.0-indev] - 17/09/26
+
+### Added:
+* Generation-checked `ResourceHandle`s and `ResourceView<T>` weak borrows.
+* `Container::importResource` returns a `ResourceView<T>` instead of a raw pointer.
+* Teardown hooks `Container::onUnload()`/`Module::onUnload()` and phased, documented `Application::unloadGame()`.
+* `expose()` boxes values into Container-owned storage, including a new `double` overload.
+* `Inspector::detach()`.
+* Regression test suite (`tests/`) wired into CTest.
+* Documented the teardown/ownership model in `README.md`.
+
+### Fixed:
+* Modules kept pointing at the moved-from Container after a move (ID4).
+* Stale resource handles could alias recreated resources (ID1).
+* `importResource`/`expose` no longer hand out dangling raw pointers (ID6).
+* Inspector edited a freed pointer on removed/teardown'd exposed variables, and corrupted `std::string` variables via a char-buffer cast (ID6).
+* Inspector toolbar tooltip varargs format mismatch.
 
 ## [0.7.2-indev] - 17/09/26
 

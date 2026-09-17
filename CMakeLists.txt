@@ -112,6 +112,13 @@ add_library(LavaEngine::LavaEngine ALIAS LavaEngine)
 
 add_subdirectory(lavac)
 
+# Tests
+
+include(CTest)
+if(BUILD_TESTING)
+    add_subdirectory(tests)
+endif()
+
 # Shader compiler
 
 find_program(GLSLC_EXECUTABLE glslc REQUIRED)

@@ -22,6 +22,30 @@ namespace LavaEngine
 {
     using namespace LavaVK;
 
+    /**
+     * @brief Root object and owner of a LavaEngine game session.
+     * @detail Owns the Scheduler, Logger, framework (Framework), and every
+     * Container created through createContainer(). Lifecycle is driven
+     * through this object: create containers/frameworks, then run() or
+     * step() the game loop.
+     * @note Ownership: `Application` is the session root. It uniquely owns
+     * the framework, the scheduler's jobs, the containers, and the logger.
+     * References and pointers borrowed from it (e.g. getScheduler(),
+     * getLogger(), findFramework<>(), findContainer<>()) are valid only
+     * while the Application outlives them. unloadGame() teardown runs in fixed phases:
+     * (1) container/module onUnload() hooks, (2) framework shutdown(),
+     * (3) scheduler job destruction, (4) container destruction, (5) framework
+     * destruction. A teardown hook at phase 1 is the last point at which
+     * non-owning references (e.g. the renderer's overlay callback) may be
+     * released while the borrowed-from objects are still alive.
+     * @example
+     * @code
+     * LavaEngine::Application app;
+     * auto& world = app.createContainer<Container>("world");
+     * app.setFramework<VulkanRenderer>(app, 1280, 720, "Game");
+     * app.run();
+     * @endcode
+     */
     class Application
     {
     public:
@@ -129,10 +153,26 @@ namespace LavaEngine
 
         void unloadGame()
         {
+            // Phase 1 - teardown hooks: give containers/modules a chance
+            // to release borrowed references while the framework is alive.
+            for (auto& container : m_containers)
+                container->onUnload();
+
+            // Phase 2 - framework detach: release the framework's
+            // references into container-owned objects (e.g. overlay
+            // callback, offscreen target).
             if (m_framework) m_framework->shutdown();
+
+            // Phase 3 - scheduler: destroy jobs before the objects they
+            // may borrow from.
             m_scheduler.clear();
+
+            // Phase 4 - containers: destroy modules, then resources.
             m_containers.clear();
-            if (m_framework) m_framework.reset();   // prevents a second shutdown() call
+
+            // Phase 5 - framework (shutdown() already ran; resetting
+            // prevents a second shutdown() call).
+            if (m_framework) m_framework.reset();
         }
 
     private:

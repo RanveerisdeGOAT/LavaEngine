@@ -12,6 +12,7 @@ namespace LavaEngine
           m_resources(std::move(other.m_resources)),
           m_variables(std::move(other.m_variables))
     {
+        m_modules.setContainer(this);
     }
 
 
@@ -25,6 +26,8 @@ namespace LavaEngine
         m_resources = std::move(other.m_resources);
         m_variables = std::move(other.m_variables);
 
+        m_modules.setContainer(this);
+
         return *this;
     }
 
@@ -35,21 +38,61 @@ namespace LavaEngine
 
     void Container::expose(const std::string& name, float* variable)
     {
-        m_variables.push_back(Variable{name, static_cast<void*>(variable), VarType::Float});
+        auto box = std::make_unique<ExposedBox>();
+        box->floating = *variable;
+
+        m_variables.push_back(
+            Variable{name, &box->floating, VarType::Float}
+        );
+
+        m_boxes.push_back(std::move(box));
     }
 
     void Container::expose(const std::string& name, int* variable)
     {
-        m_variables.push_back(Variable{name, static_cast<void*>(variable), VarType::Int});
+        auto box = std::make_unique<ExposedBox>();
+        box->integer = *variable;
+
+        m_variables.push_back(
+            Variable{name, &box->integer, VarType::Int}
+        );
+
+        m_boxes.push_back(std::move(box));
     }
 
     void Container::expose(const std::string& name, bool* variable)
     {
-        m_variables.push_back(Variable{name, static_cast<void*>(variable), VarType::Bool});
+        auto box = std::make_unique<ExposedBox>();
+        box->boolean = *variable;
+
+        m_variables.push_back(
+            Variable{name, &box->boolean, VarType::Bool}
+        );
+
+        m_boxes.push_back(std::move(box));
     }
 
     void Container::expose(const std::string& name, std::string* variable)
     {
-        m_variables.push_back(Variable{name, static_cast<void*>(variable), VarType::String});
+        auto box = std::make_unique<ExposedBox>();
+        box->stringValue = *variable;
+
+        m_variables.push_back(
+            Variable{name, &box->stringValue, VarType::String}
+        );
+
+        m_boxes.push_back(std::move(box));
+    }
+
+    void Container::expose(const std::string& name, double* variable)
+    {
+        auto box = std::make_unique<ExposedBox>();
+        box->doublePrec = *variable;
+
+        m_variables.push_back(
+            Variable{name, &box->doublePrec, VarType::Double}
+        );
+
+        m_boxes.push_back(std::move(box));
     }
 }

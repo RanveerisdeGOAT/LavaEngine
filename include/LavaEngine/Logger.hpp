@@ -22,6 +22,11 @@ namespace LavaEngine
         Debug,
     };
 
+    /**
+     * @brief One immutable log message produced by a Logger.
+     * @note Ownership: Plain value type; owned by the Logger's history
+     * (deque) and safe to copy.
+     */
     struct LogEntry
     {
         LogLevel level;
@@ -29,6 +34,21 @@ namespace LavaEngine
         std::string message;
     };
 
+    /**
+     * @brief Leveled logging sink with a console/file output and a queryable history.
+     * @detail Emits messages at or above the configured level to the console
+     * and/or a file, and keeps a bounded in-memory history for tools. A
+     * process-wide instance is available via instance().
+     * @note Ownership: Owned by `Application` (m_logger, by value); the
+     * static singleton returned by instance() is owned by the Logger
+     * translation unit. Internal log/history state is mutex-protected.
+     * A custom output stream passed to setOutput() must outlive the Logger.
+     * @example
+     * @code
+     * Logger::instance().info("Hello ", 42);
+     * std::vector<LogEntry> entries = Logger::instance().entries();
+     * @endcode
+     */
     class Logger
     {
     public:

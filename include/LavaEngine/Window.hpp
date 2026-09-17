@@ -13,6 +13,22 @@ namespace LavaEngine
 {
     using namespace LavaVK;
 
+    /**
+     * @brief Owns a native GLFW window and its input state.
+     * @detail Creates a Vulkan-capable GLFW window and an InputHandler bound
+     * to it. Non-copyable, movable.
+     * @note Ownership: Owned by `VulkanRenderer` as a value member. Window
+     * owns the native `GLFWwindow` (destroyed in ~Window) and its
+     * `InputHandler`. A moved-from Window holds a null GLFW handle and must
+     * not be used. GLFW initialization/termination is process-wide; the
+     * destructor calls glfwTerminate(), so no more than one Window should
+     * be alive at a time.
+     * @example
+     * @code
+     * Window window(1280, 720, "Game");
+     * while (!window.shouldClose()) { window.getInputHandler().update(); }
+     * @endcode
+     */
     class Window
     {
     public:

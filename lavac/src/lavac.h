@@ -8,6 +8,23 @@
 
 using EngineFunction = void (*)(LavaEngine::Application&);
 
+/**
+ * @brief Hosts a dynamically loaded game (.so) and the Application that runs it.
+ * @detail Loads a game library, resolves its `lavaEngineMain` entry point,
+ * runs/steps it, and supports hot reload when the library is rebuilt.
+ * @note Ownership: UserGame owns the `Application` (m_engine, by value),
+ * the dlopen'd library handle, and the runtime copy of the game file. On
+ * reload/unload it tears the Application session down (unloadGame) before
+ * dlclosing the library. Borrowers of the Application (e.g. Inspector) must
+ * re-resolve their pointers after a reload, since the framework is reset.
+ * @example
+ * @code
+ * UserGame game("MyGame.so");
+ * game.load();
+ * while (!game.step()) {}
+ * game.unload();
+ * @endcode
+ */
 class UserGame
 {
 public:

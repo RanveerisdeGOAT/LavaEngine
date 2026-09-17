@@ -437,6 +437,56 @@ engine.run();
 
 ---
 
+## Application Teardown
+
+`Application` owns every framework, scheduler job, Container and resource of
+a game session. `unloadGame()` (also called by `shutdown()` and by hot
+reload) tears the session down in a fixed, deterministic order:
+
+1. **Teardown hooks** — every Container's `onUnload()` runs, which by
+   default forwards to each Module's `onUnload()`. This is the last point
+   at which game code may release non-owning references to objects that are
+   still alive (e.g. a renderer overlay callback capturing Container state).
+2. **Framework shutdown** — `Framework::shutdown()` runs; the framework
+   releases its references into Container-owned objects (overlay callback,
+   offscreen target).
+3. **Scheduler** — all jobs are destroyed before the objects they may
+   borrow from.
+4. **Containers** — destroyed (Modules, then Resources and exposed boxes).
+5. **Framework** — destroyed last.
+
+### Ownership model
+
+- A `ResourceRegistry` (and its Container) is the single owner of every
+  `Resource`. `ResourceHandle`s are generation-checked on every access and
+  are invalidated by `remove()`, `clear()` or destruction.
+  `ResourceView` keeps a weak reference and reports `invalid()` once the
+  owner or resource is gone.
+- `importResource()` returns a `ResourceView`, never a raw pointer.
+- `expose()` snapshots the value into an owned box; the Inspector edits the
+  box, never caller memory.
+- Modules point back to their owning Container; the back-pointer is re-pointed
+  when the Container is moved.
+
+Modules can run cleanup at teardown by overriding `onUnload()`:
+
+```c++
+struct CleanupModule : Module
+{
+    void onUnload() override
+    {
+        renderer->clearOverlayCallback();
+    }
+};
+```
+
+Hot reload (`lavac`) calls `unloadGame()` before loading the new library, so
+the whole session (except the `Application` object and its `Logger`) is
+rebuilt. Objects borrowed across a reload — e.g. an `Inspector` attached to
+a `VulkanRenderer` — must be detached/rebound afterwards.
+
+---
+
 ## Design Principles
 
 LavaEngine is built around several principles.

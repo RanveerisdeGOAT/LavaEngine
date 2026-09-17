@@ -7,6 +7,23 @@ namespace LavaEngine
 {
     using JobID = uint32_t;
 
+    /**
+     * @brief One schedulable unit producing an int result, owned by a Scheduler.
+     * @detail A Job runs `task` until it returns > 0 (complete); 0 or a
+     * negative value keeps the job scheduled for the next execute(). `exit`
+     * runs when the job completes or is destroyed. `dependencies` gate
+     * execution.
+     * @note Ownership: Owned by the owning Scheduler (std::vector<Job>).
+     * `task`/`exit` may capture what the job needs, but captured references
+     * must live at least until the job is destroyed. The Scheduler is
+     * drained before containers/modules are destroyed, so jobs must not
+     * capture Container/Module/Resource that could die earlier.
+     * @example
+     * @code
+     * JobID id = scheduler.createJob([&] { doWork(); return 1; });
+     * scheduler.dependsOn(id, otherJob);
+     * @endcode
+     */
     struct Job
     {
         JobID id;
@@ -16,6 +33,23 @@ namespace LavaEngine
         std::chrono::microseconds duration;
     };
 
+    /**
+     * @brief Owns and advances a set of Jobs with dependency ordering.
+     * @detail execute() runs every ready, incomplete job once per call and
+     * records each job's duration; completion is decided by the job's return
+     * value.
+     * @note Ownership: Owned by `Application` (m_scheduler, by value). It
+     * uniquely owns every Job. Application::unloadGame() drains it (exitAll)
+     * before destroying frameworks/containers. Pointers from findJob() are
+     * invalidated by createJob()/destroyJob() and must not be held across
+     * those calls.
+     * @example
+     * @code
+     * Scheduler scheduler;
+     * scheduler.createJob([] { return 1; });
+     * while (scheduler.completedJobCount() < scheduler.jobCount()) scheduler.execute();
+     * @endcode
+     */
     class Scheduler
     {
     public:

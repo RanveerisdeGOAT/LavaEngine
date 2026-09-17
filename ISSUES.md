@@ -1,8 +1,8 @@
-# LavaEngine — Current Issues & Work Tracker
+# LavaEngine - Issues
 
 > **Snapshot:** 2026-09-17  
 > **Repository:** https://github.com/RanveerisdeGOAT/LavaEngine  
-> **Version observed:** `0.7.1-indev`
+> **Version observed:** `0.8.0-indev`
 >
 > This file tracks issues, gaps, and engineering work identified from the current repository structure, README, changelog, and public project state.
 >
@@ -27,7 +27,7 @@
 
 ---
 
-## [~] ID1 - Define and enforce ownership/lifetime rules
+## [x] ID1 - Define and enforce ownership/lifetime rules
 
 **Priority:** P0  
 **Area:** Core / Containers / Modules / Resources
@@ -54,6 +54,23 @@ We need a documented and tested ownership model covering:
 - Jobs cannot outlive objects they capture unless explicitly supported.
 - Destruction order is deterministic and documented.
 - Regression tests cover lifetime edge cases.
+
+### Resolution (0.8.0-indev)
+
+- Generation-tagged `ResourceHandle`s; every `get`/`contains`/`remove` is
+  checked, so stale handles can no longer alias a recreated resource.
+- `ResourceView<T>`: weak, lifetime-checked borrows; `importResource` now
+  returns a `ResourceView<T>` instead of a raw `T*` (see ID6).
+- `Container`/`ModuleRegistry` moves re-point `Module::m_container` to the
+  destination container (see ID4).
+- Deterministic, documented `Application::unloadGame()` teardown phases with
+  `Container::onUnload()`/`Module::onUnload()` hooks (see README,
+  "Application Teardown").
+- `expose()` snapshots values into Container-owned boxes (see ID6).
+- Regression suite in `tests/`, passing under ASan with leak detection.
+
+Residual lifetime surface remains tracked under ID3 (scheduler re-entrancy),
+ID7 (logger races), and the Inspector hot-reload caveat in README.
 
 ---
 
@@ -99,7 +116,7 @@ Concrete hazards found while reviewing `src/Scheduler.cpp`:
 
 ---
 
-## [ ] ID4 - Container/ModuleRegistry moves leave Modules pointing at the moved-from Container
+## [x] ID4 - Container/ModuleRegistry moves leave Modules pointing at the moved-from Container
 
 **Priority:** P1  
 **Area:** Containers / Modules
@@ -113,6 +130,13 @@ After any move, `Module::getContainer()` (`include/LavaEngine/Module.hpp:18-26`)
 - After moving, walk all modules and `setContainer(this)`.
 - Add a regression test moving a container with `addModule<T>`'d modules and verifying `getContainer()`.
 - Consider making `Container` non-movable (its name/ownership also make moves awkward) and storing it behind a `unique_ptr` in `Application`.
+
+### Resolution (0.8.0-indev)
+
+`Container`'s move ctor/assignment now call
+`ModuleRegistry::setContainer(this)` after moving, which updates the
+registry back-pointer and every module's `m_container`. Covered by
+`testContainerMoveRepointsModules` in `tests/tests.cpp`.
 
 ---
 
@@ -140,7 +164,7 @@ Two problems:
 
 ---
 
-## [ ] ID6 - `importResource`/`expose` hand out raw pointers with no lifetime guarantee
+## [x] ID6 - `importResource`/`expose` hand out raw pointers with no lifetime guarantee
 
 **Priority:** P0  
 **Area:** Containers / Resources / Inspector
@@ -154,6 +178,17 @@ These are concrete instances of the lifetime hazards ID1 calls out:
 
 - `importResource` should return a shared/lifetime-tracked handle (or a `shared_ptr`/observer that can be queried for validity) instead of a raw pointer.
 - `expose` should either own a copy of the value (with write-back), take a `std::shared_ptr`/`weak_ptr`, or at minimum auto-deregister on teardown; document that exposed pointers must outlive the Container.
+
+### Resolution (0.8.0-indev)
+
+- `Container::importResource` returns `ResourceView<T>` (weak, revalidated on
+  each access); the exporter's destruction or `remove()` invalidates it
+  safely.
+- `Container::expose` snapshots the value into a stable, Container-owned
+  `ExposedBox`; the Inspector always writes through owned memory (string
+  editing no longer casts a `std::string*` to `char*`). Added the missing
+  `expose(const std::string&, double*)` overload.
+- Covered by `testContainerImportResource` and `testExposedBoxes`.
 
 ---
 

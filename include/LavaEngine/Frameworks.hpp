@@ -15,6 +15,25 @@ namespace LavaEngine
     class Application;
 
 
+    /**
+     * @brief Default Framework: a GLFW + Vulkan rendering surface with an ImGui overlay hook.
+     * @detail Owns the Window, Vulkan Instance, Surface, Device, RenderPass,
+     * and SwapChain for the whole session, and exposes an ImGui overlay
+     * recording callback plus an optional offscreen render target.
+     * @note Ownership: Owned by `Application` (std::unique_ptr<Framework>).
+     * It owns, by value, the Window, Instance, Surface, Device, RenderPass,
+     * and SwapChain. Borrowed, non-owning references: the owning
+     * Application (m_engine) and the CommandPool (owned by the Device).
+     * The offscreen framebuffer/render pass pointers and the overlay
+     * callback are borrowed from the Inspector/game and must be cleared
+     * (see clearOffscreenTarget()/clearOverlayCallback()) before their
+     * owners are destroyed.
+     * @example
+     * @code
+     * auto& renderer = app.setFramework<VulkanRenderer>(app, 1280, 720, "Game");
+     * renderer.setOverlayCallback([&](CommandBuffer& cmd) { buildUi(cmd); });
+     * @endcode
+     */
     class VulkanRenderer : public Framework
     {
     public:

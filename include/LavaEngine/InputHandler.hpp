@@ -10,6 +10,19 @@
 namespace LavaEngine
 {
     class Window;
+    /**
+     * @brief Frame-based keyboard/mouse state for a single GLFW window.
+     * @detail Polls GLFW during update() and records current/previous key
+     * and mouse state so pressed/released edges can be detected.
+     * @note Ownership: Owned by `Window` as a value member. It borrows the
+     * native `GLFWwindow` pointer from its owning Window; that pointer is
+     * valid only while the owning Window owns a live GLFW window.
+     * @example
+     * @code
+     * if (input.isKeyPressed(GLFW_KEY_SPACE)) jump();
+     * glm::vec2 delta = input.mouseDelta();
+     * @endcode
+     */
     class InputHandler
     {
     public:

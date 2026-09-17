@@ -32,6 +32,21 @@
 
 namespace LavaEngine
 {
+    /**
+     * @brief Dear ImGui editor attached to a running UserGame session.
+     * @detail Draws ImGui panels (explorer, logger, viewport) over the
+     * engine's VulkanRenderer while stepping the game.
+     * @note Ownership: Owned by its creator (typically on the stack in
+     * main). It borrows, non-owning, the UserGame/Application and the
+     * VulkanRenderer. The cached renderer pointer must be re-resolved with
+     * Application::findFramework<VulkanRenderer>() after a hot reload,
+     * because unloadGame() resets the framework.
+     * @example
+     * @code
+     * Inspector inspector(game);
+     * inspector.inspect();
+     * @endcode
+     */
     class Inspector
     {
     public:
@@ -66,6 +81,36 @@ namespace LavaEngine
                 if (m_application.step())
                     break;
             }
+        }
+
+        // Uninstalls from the renderer and shuts down the ImGui backends.
+        // Idempotent; safe to call before a UserGame reload or teardown.
+        // After a reload the backends must be re-initialized via a new
+        // Inspector, so callers should not reuse this object afterwards.
+        void detach()
+        {
+            if (!ImGui::GetCurrentContext())
+                return;
+
+            // Wait for GPU work before destroying ImGui's Vulkan objects.
+            if (vulkan)
+            {
+                vkDeviceWaitIdle(
+                    vulkan->device().native()
+                );
+
+                destroyViewportTarget();
+
+                vulkan->clearOverlayCallback();
+            }
+
+            ImGui_ImplVulkan_Shutdown();
+
+            ImGui_ImplGlfw_Shutdown();
+
+            ImGui::DestroyContext();
+
+            vulkan = nullptr;
         }
 
     private:
@@ -501,11 +546,14 @@ namespace LavaEngine
 
                     if (ImGui::IsMouseHoveringRect(p0, p1))
                     {
-                        ImGui::SetTooltip(
-                            isSystem ? "System - %.3f ms" : "Job #%u - %.3f ms",
-                            id,
-                            ms
-                        );
+                        if (isSystem)
+                        {
+                            ImGui::SetTooltip("System - %.3f ms", ms);
+                        }
+                        else
+                        {
+                            ImGui::SetTooltip("Job #%u - %.3f ms", id, ms);
+                        }
                     }
 
                     x += w;
@@ -651,7 +699,7 @@ namespace LavaEngine
                         if (ImGui::TreeNodeEx("Variables"))
                         {
                             if (container->variables().empty()) ImGui::Text("(no exposed variables)");
-                            for (Variable variable : container->variables())
+                            for (const Variable& variable : container->variables())
                             {
                                 if (variable.type == VarType::Bool) ImGui::Checkbox(
                                     variable.name.c_str(), static_cast<bool*>(variable.ptr));
@@ -661,8 +709,26 @@ namespace LavaEngine
                                     variable.name.c_str(), static_cast<float*>(variable.ptr));
                                 if (variable.type == VarType::Double) ImGui::InputDouble(
                                     variable.name.c_str(), static_cast<double*>(variable.ptr));
-                                if (variable.type == VarType::String) ImGui::InputText(
-                                    variable.name.c_str(), static_cast<char*>(variable.ptr), 255);
+                                if (variable.type == VarType::String)
+                                {
+                                    char buffer[256];
+                                    buffer[0] = '\0';
+                                    strncpy(
+                                        buffer,
+                                        static_cast<std::string*>(variable.ptr)->c_str(),
+                                        sizeof(buffer) - 1
+                                    );
+                                    buffer[sizeof(buffer) - 1] = '\0';
+
+                                    if (ImGui::InputText(
+                                        variable.name.c_str(),
+                                        buffer,
+                                        sizeof(buffer)
+                                    ))
+                                    {
+                                        *static_cast<std::string*>(variable.ptr) = buffer;
+                                    }
+                                }
                             }
 
                             ImGui::TreePop();
@@ -841,13 +907,13 @@ namespace LavaEngine
                     ImGui::TextDisabled("(none)");
                 }
 
-                for (const auto& [id, resourcePtr] : resources.all())
+                for (const auto& [id, entry] : resources.all())
                 {
                     ImGui::BulletText(
                         "#%u  %s%s",
                         id,
-                        demangle(typeid(*resourcePtr).name()).c_str(),
-                        resourcePtr->isExported() ? "  [exported]" : ""
+                        demangle(typeid(*entry.resource).name()).c_str(),
+                        entry.resource->isExported() ? "  [exported]" : ""
                     );
                 }
 
@@ -1566,33 +1632,7 @@ namespace LavaEngine
 
         void shutdown()
         {
-            if (!ImGui::GetCurrentContext())
-                return;
-
-            /*
-             * The Vulkan backend may still have GPU resources in use.
-             *
-             * Make sure all rendering has completed before destroying
-             * ImGui's Vulkan objects.
-             */
-            if (vulkan)
-            {
-                vkDeviceWaitIdle(
-                    vulkan->device().native()
-                );
-
-                destroyViewportTarget();
-
-                vulkan->clearOverlayCallback();
-            }
-
-            ImGui_ImplVulkan_Shutdown();
-
-            ImGui_ImplGlfw_Shutdown();
-
-            ImGui::DestroyContext();
-
-            vulkan = nullptr;
+            detach();
         }
 
     private:

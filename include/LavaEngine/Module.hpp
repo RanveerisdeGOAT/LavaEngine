@@ -10,6 +10,24 @@ namespace LavaEngine
 {
     class Container;
 
+    /**
+     * @brief Base class for all gameplay/engine logic hosted by a Container.
+     * @detail Subclass Module and add it to a Container's ModuleRegistry via
+     * Container::addModule<T>(). The registry owns the module and sets its
+     * container back-pointer.
+     * @note Ownership: Owned (as std::unique_ptr<Module>) by the owning
+     * ModuleRegistry/Container. `m_container` is a borrowed, non-owning
+     * back-pointer and is only valid while the module is owned by that
+     * registry; a module must not be added to more than one registry.
+     * @example
+     * @code
+     * struct Player : Module {
+     *     void imgui() const override { ... }
+     * };
+     * auto& p = world.addModule<Player>();
+     * p.getContainer(); // -> the owning Container
+     * @endcode
+     */
     class Module
     {
     public:
@@ -24,6 +42,11 @@ namespace LavaEngine
         {
             return *m_container;
         }
+
+        // Teardown hook: called by the owning Container during
+        // Application::unloadGame() while the framework is still alive,
+        // so game code can release borrowed references before destruction.
+        virtual void onUnload() {}
 
         virtual void imgui() const = 0;
 
@@ -47,6 +70,23 @@ namespace LavaEngine
         return typeid(T).hash_code();
     }
 
+    /**
+     * @brief Owns the Modules of a Container, indexed by type.
+     * @detail Storage is a vector of std::unique_ptr plus a type-to-pointer
+     * lookup table. add<T>()/get<T>()/has<T>()/remove<T>() provide typed
+     * access; one module of each type is allowed.
+     * @note Ownership: Owned by its Container. It uniquely owns every Module
+     * in `m_modules`; the lookup table holds borrowed raw pointers into that
+     * vector (kept consistent by add/remove/clear). `m_container` is a
+     * borrowed, non-owning back-pointer to the owning Container.
+     * @example
+     * @code
+     * ModuleRegistry reg;
+     * auto& m = reg.add<PlayerModule>();
+     * PlayerModule* p = reg.get<PlayerModule>();
+     * reg.remove<PlayerModule>();
+     * @endcode
+     */
     class ModuleRegistry
     {
     public:
@@ -168,5 +208,15 @@ namespace LavaEngine
         Container* m_container = nullptr;
         std::unordered_map<TypeID, Module*> m_lookup;
         std::vector<std::unique_ptr<Module>> m_modules;
+
+        friend class Container;
+
+        void setContainer(Container* container)
+        {
+            m_container = container;
+
+            for (auto& module : m_modules)
+                module->setContainer(container);
+        }
     };
 }

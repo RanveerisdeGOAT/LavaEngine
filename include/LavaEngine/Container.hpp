@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <string>
 #include <utility>
 
@@ -18,6 +19,15 @@ namespace LavaEngine
         Double,
     };
 
+    /**
+     * @brief A name/type/box triple exposing a value to the Inspector.
+     * @detail Created via Container::expose(); the Inspector reads and
+     * writes through `ptr` according to `type`.
+     * @note Ownership: Owned by the owning Container (by value in
+     * `m_variables`, box heap-allocated in `m_boxes`). `ptr` points into
+     * an owned, stable heap box, so the Inspector may always safely read
+     * and write through it regardless of what the caller does afterwards.
+     */
     struct Variable
     {
         std::string name;
@@ -26,6 +36,24 @@ namespace LavaEngine
     };
 
 
+    /**
+     * @brief Logical grouping unit: owns modules, resources and exposed variables.
+     * @detail A Container is created on an Application via
+     * createContainer<T>() and hosts Modules (ModuleRegistry), Resources
+     * (ResourceRegistry) and inspector-exposed variables. Modules can reach
+     * the owning Container through Module::getContainer().
+     * @note Ownership: A Container is uniquely owned by the Application
+     * that created it (std::unique_ptr in Application::m_containers). It
+     * owns its modules, resources and variables and destroys them during
+     * teardown. Any Module/Resource reference obtained from it is invalid
+     * once the Container is destroyed.
+     * @example
+     * @code
+     * auto& world = app.createContainer<Container>("world");
+     * auto& player = world.addModule<PlayerModule>();
+     * ResourceHandle mesh = world.createResource<MeshResource>(...);
+     * @endcode
+     */
     class Container
     {
     public:
@@ -119,21 +147,31 @@ namespace LavaEngine
         }
 
 
+        /**
+         * @brief Borrows an exported resource from another Container.
+         * @note Ownership: Non-owning. The returned view tracks the
+         * exporting registry's lifetime and reports invalid() once the
+         * resource is removed or the exporter is destroyed.
+         * @param exporter The Container whose resource is borrowed.
+         * @param handle A ResourceHandle valid in the exporter's registry.
+         * @return A ResourceView<T>, invalid if the resource is missing,
+         * not exported or the exporter no longer owns it.
+         */
         template <typename T>
-        T* importResource(
+        ResourceView<T> importResource(
             Container& exporter,
             ResourceHandle handle
         )
         {
-            T* resource = exporter.m_resources.get<T>(handle);
+            if (!exporter.m_resources.contains(handle))
+                return {};
 
-            if (!resource)
-                return nullptr;
+            const T* resource = exporter.m_resources.get<T>(handle);
 
-            if (!resource->isExported())
-                return nullptr;
+            if (!resource || !resource->isExported())
+                return {};
 
-            return resource;
+            return exporter.m_resources.view<T>(handle);
         }
 
         void clearModules()
@@ -162,9 +200,19 @@ namespace LavaEngine
 
         virtual void imgui() const {}
 
+        // Teardown hook: called by the Application during unloadGame()
+        // while the framework is still alive. Default forwards to every
+        // module's onUnload(); override to release container-held borrows.
+        virtual void onUnload()
+        {
+            for (auto& module : m_modules.m_modules)
+                module->onUnload();
+        }
+
         void expose(const std::string& name, float* variable);
         void expose(const std::string& name, int* variable);
         void expose(const std::string& name, bool* variable);
+        void expose(const std::string& name, double* variable);
         void expose(const std::string& name, std::string* variable);
 
         [[nodiscard]]
@@ -175,10 +223,23 @@ namespace LavaEngine
 
 
     private:
+        // Owns the boxed copy behind each exposed Variable. Heap-allocated
+        // so the address the Variable::ptr points into stays stable even if
+        // m_variables reallocates.
+        struct ExposedBox
+        {
+            bool boolean = false;
+            int integer = 0;
+            float floating = 0.0f;
+            double doublePrec = 0.0;
+            std::string stringValue;
+        };
+
         std::string m_name;
 
         ModuleRegistry m_modules;
         ResourceRegistry m_resources;
         std::vector<Variable> m_variables;
+        std::vector<std::unique_ptr<ExposedBox>> m_boxes;
     };
 }
