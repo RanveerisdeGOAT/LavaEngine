@@ -1,6 +1,12 @@
 # Changelog
 
-All notable changes to LavaEngine are documented here.
+> Snapshot: 2026-09-17
+>
+> Repository: https://github.com/RanveerisdeGOAT/LavaEngine
+>
+> Version observed: 0.7.1-indev
+>
+> This file contains all notable changes to LavaEngine are documented here.
 
 ## [0.7.1-indev] - 16/09/26
 
