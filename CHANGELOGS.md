@@ -4,14 +4,19 @@
 >
 > Repository: https://github.com/RanveerisdeGOAT/LavaEngine
 >
-> Version observed: 0.7.1-indev
+> Version observed: 0.7.2-indev
 >
 > This file contains all notable changes to LavaEngine are documented here.
+
+## [0.7.2-indev] - 17/09/26
+
+### Added:
+* Added issue tracker in `ISSUES.md`.
 
 ## [0.7.1-indev] - 16/09/26
 
 ### Fixed:
-* Fixed a few lifetime issue throughout the program.
+* Small progress to fixing [ID1].
 
 ## [0.7.0-indev] - 14/09/26
 
