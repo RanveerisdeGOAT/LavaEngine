@@ -2,7 +2,7 @@
 
 > **Snapshot**: 2026-09-17
 > **Repository**: https://github.com/RanveerisdeGOAT/LavaEngine
-> **Version observed**: 0.7.2-indev
+> **Version observed**: 0.8.0-indev
 >
 > This file contains all notable changes to LavaEngine are documented here.
 
