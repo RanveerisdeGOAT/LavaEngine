@@ -4,7 +4,9 @@ namespace LavaEngine
 {
     Container::Container(std::string name)
         : m_name(std::move(name))
-    {}
+    {
+        m_modules.setContainer(this);
+    }
 
     Container::Container(Container&& other) noexcept
         : m_name(std::move(other.m_name)),

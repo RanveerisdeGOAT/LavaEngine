@@ -2,10 +2,10 @@
 
 #include <array>
 
-#include "LavaVK/LavaVK.hpp"
-#include <GLFW/glfw3.h>
+#include "../../LavaVK/include/LavaVK/LavaVK.hpp"
+#include "../../external/glfw-3.5.1//include/GLFW/glfw3.h"
 
-#include "../external/glm/glm/glm.hpp"
+#include "../../external/glm/glm/glm.hpp"
 
 namespace LavaEngine
 {

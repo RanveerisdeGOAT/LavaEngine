@@ -4,10 +4,10 @@
 #include <stdexcept>
 #include <string>
 
-#include <GLFW/glfw3.h>
+#include "../../external/glfw-3.5.1//include/GLFW/glfw3.h"
 
 #include "Framework.hpp"
-#include "LavaVK/LavaVK.hpp"
+#include "../../LavaVK/include/LavaVK/LavaVK.hpp"
 #include "Window.hpp"
 
 namespace LavaEngine
@@ -121,7 +121,7 @@ namespace LavaEngine
                 m_renderPass,
                 m_renderPass.getColorFormat(),
                 m_renderPass.getDepthFormat(),
-                VkExtent2D(width, height)
+                VkExtent2D{static_cast<uint32_t>(width), static_cast<uint32_t>(height)}
             );
 
             m_commandPool = &m_device.getCommandPool(QueueType::GRAPHICS);

@@ -4,8 +4,8 @@
 #include <string>
 #include <vector>
 
-#include "LavaVK/LavaVK.hpp"
-#include <GLFW/glfw3.h>
+#include "../../LavaVK/include/LavaVK/LavaVK.hpp"
+#include "../../external/glfw-3.5.1//include/GLFW/glfw3.h"
 
 #include "InputHandler.hpp"
 

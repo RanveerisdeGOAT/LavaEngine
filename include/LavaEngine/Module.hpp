@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+#include <string_view>
 #include <unordered_map>
 #include <vector>
 #include <memory>
@@ -62,12 +64,86 @@ namespace LavaEngine
         Container* m_container = nullptr;
     };
 
-    using TypeID = std::uint32_t;
+    using TypeID = std::uint64_t;
+
+    namespace detail
+    {
+        // FNV-1a 64-bit mix over a type's canonical spelling. Unlike
+        // typeid(T).hash_code(), the value is a pure function of the type
+        // name text, so the same source type maps to the same ID in every
+        // translation unit and every reloaded shared object (hot reload).
+        constexpr TypeID fnv1a(std::string_view text)
+        {
+            TypeID hash = 14695981039346656037ULL;
+
+            for (char byte : text)
+            {
+                hash ^= static_cast<unsigned char>(byte);
+                hash *= 1099511628211ULL;
+            }
+
+            return hash;
+        }
+
+        // Extracts the canonical spelling of T from the compiler's
+        // pretty-printed signature, fully at compile time. A type prints
+        // identically wherever it is compiled, so its derived ID is stable
+        // across TU/DSO boundaries.
+        template <typename T>
+        constexpr std::string_view typeName()
+        {
+#if defined(_MSC_VER)
+            constexpr std::string_view signature = __FUNCSIG__;
+            constexpr std::string_view marker = "typeName<";
+            constexpr std::string_view closer = ">(void)";
+#else
+            constexpr std::string_view signature = __PRETTY_FUNCTION__;
+            constexpr std::string_view marker = "T = ";
+#endif
+
+            const std::size_t begin = signature.find(marker);
+
+            if (begin == std::string_view::npos)
+                return {};
+
+#if defined(_MSC_VER)
+            const std::size_t end = signature.rfind(closer);
+
+            return signature.substr(
+                begin + marker.size(),
+                end - (begin + marker.size())
+            );
+#else
+            // GCC closes with "T = int; std::string_view = ...", Clang with
+            // "T = int]". A type spelling may itself contain ']' (arrays),
+            // so prefer ';' as the first terminator and fall back to the
+            // trailing ']'.
+            const std::size_t separator =
+                signature.find(';', begin);
+
+            if (separator != std::string_view::npos)
+                return signature.substr(
+                    begin + marker.size(),
+                    separator - (begin + marker.size())
+                );
+
+            const std::size_t bracket = signature.rfind(']');
+
+            if (bracket == std::string_view::npos || bracket <= begin)
+                return {};
+
+            return signature.substr(
+                begin + marker.size(),
+                bracket - (begin + marker.size())
+            );
+#endif
+        }
+    }
 
     template <typename T>
     constexpr TypeID typeID()
     {
-        return typeid(T).hash_code();
+        return detail::fnv1a(detail::typeName<T>());
     }
 
     /**
@@ -125,6 +201,8 @@ namespace LavaEngine
 
             m_modules.push_back(std::move(module));
             m_lookup.emplace(id, ptr);
+
+            ptr->setContainer(m_container);
 
             return *ptr;
         }

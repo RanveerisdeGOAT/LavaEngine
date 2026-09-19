@@ -57,7 +57,10 @@ namespace LavaEngine
     class Container
     {
     public:
-        Container() = default;
+        Container()
+        {
+            m_modules.setContainer(this);
+        }
 
         explicit Container(std::string name);
 

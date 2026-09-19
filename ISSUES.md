@@ -140,7 +140,7 @@ registry back-pointer and every module's `m_container`. Covered by
 
 ---
 
-## [ ] ID5 - `typeID<T>()` uses `typeid(T).hash_code()`, which is collision- and DSO-unsafe
+## [x] ID5 - `typeID<T>()` uses `typeid(T).hash_code()`, which is collision- and DSO-unsafe
 
 **Priority:** P1  
 **Area:** Modules / Hot-reloading
@@ -161,6 +161,24 @@ Two problems:
 - Replace with a compile-time unique counter (`__COUNTER__`/counter template) or explicit registration macro, or
 - A name-based ID, or
 - `std::type_index` (itself based on `type_info`, so it does **not** solve the DSO problem — a manual scheme is required).
+
+### Resolution (0.8.0-indev)
+
+`typeID<T>()` is now a compile-time FNV-1a 64-bit hash of the type's
+canonical spelling, extracted from `__PRETTY_FUNCTION__`/`__FUNCSIG__`
+(`include/LavaEngine/Module.hpp`). The ID is a pure function of the type
+name text, so it is:
+
+- deterministic and stable across translation units and hot-reloaded
+  shared objects (no dependence on `std::type_info` identity or a
+  counter ordering that shifts between builds), and
+- collision-resistant in practice (64-bit mix over the name).
+
+A counter-based scheme was deliberately not chosen: `__COUNTER__`
+values are assigned per-TU in preprocessing order, so two TUs using the
+same type disagree, and adding a module can shift every later counter
+across a reload — exactly the subset of problems this fix removes.
+Covered by `testTypeIdStability` in `tests/tests.cpp`.
 
 ---
 

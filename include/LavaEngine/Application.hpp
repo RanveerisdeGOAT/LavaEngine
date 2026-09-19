@@ -5,8 +5,8 @@
 #include <utility>
 #include <vector>
 
-#include "LavaVK/LavaVK.hpp"
-#include "../external/glm/glm/glm.hpp"
+#include "../../LavaVK/include/LavaVK/LavaVK.hpp"
+#include "../../external/glm/glm/glm.hpp"
 
 #include "Window.hpp"
 #include "Container.hpp"

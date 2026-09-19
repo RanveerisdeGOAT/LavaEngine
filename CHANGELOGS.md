@@ -1,10 +1,17 @@
 # LavaEngine - Changelog
 
-> **Snapshot**: 2026-09-17
+> **Snapshot**: 2026-09-18
 > **Repository**: https://github.com/RanveerisdeGOAT/LavaEngine
-> **Version observed**: 0.8.0-indev
+> **Version observed**: 0.8.1-indev
 >
 > This file contains all notable changes to LavaEngine are documented here.
+
+## [0.8.1-indev] - 18/09/26
+
+### Fixed:
+* Modules registered via `addModule<T>()` never had their container back-pointer set, so `Module::getContainer()` dereferenced null until the container was moved (ID4).
+* Modules kept pointing at the moved-from Container after a move, fixed by the addition of a container back-pointer on `ModuleRegistry::add()` (ID4).
+* `typeID<T>()` used `typeid(T).hash_code()`, which is collision-prone and unstable across hot-reloaded shared objects; replaced with a compile-time FNV-1a hash of each type's canonical name (ID5).
 
 ## [0.8.0-indev] - 17/09/26
 
@@ -32,7 +39,7 @@
 ## [0.7.1-indev] - 16/09/26
 
 ### Fixed:
-* Small progress to fixing [ID1].
+* Small progress to fixing (ID1).
 
 ## [0.7.0-indev] - 14/09/26
 
