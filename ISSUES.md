@@ -74,7 +74,7 @@ ID7 (logger races), and the Inspector hot-reload caveat in README.
 
 ---
 
-## [ ] ID2 - Define scheduler dependency and execution semantics
+## [x] ID2 - Define scheduler dependency and execution semantics
 
 **Priority:** P0  
 **Area:** Scheduler
@@ -94,9 +94,26 @@ The README establishes the scheduler as a fundamental part of LavaEngine, but th
 
 The current scheduler example also uses return values to determine whether a job repeats. This needs a precise contract.
 
+### Resolution (0.8.1-indev)
+
+The contract is now defined in `Scheduler`'s doxygen (`include/LavaEngine/
+Scheduler.hpp`) and the README "Execution contract" section:
+
+- Single-threaded, deterministic, creation-order execution on the calling
+  thread; jobs never run concurrently (implying thread affinity: drive the
+  scheduler from one thread).
+- `>0` completes a job, `0` keeps it scheduled, `<0` cancels it; both terminal
+  results count as finished for `run()`/`done()`, and `exit()` runs exactly
+  once whenever a job finishes, cancels, or is destroyed.
+- `dependsOn` rejects self-dependencies, unknown ids, and newly introduced
+  cycles (DFS cycle detection).
+- `destroyJob`/`exitAll`/`clear` define cancellation and shutdown; teardown is
+  drained before containers/modules die (see ID1), so captured references stay
+  valid while jobs run.
+
 ---
 
-## [ ] ID3 - Scheduler is not re-entrant (iterator invalidation / UB)
+## [x] ID3 - Scheduler is not re-entrant (iterator invalidation / UB)
 
 **Priority:** P0  
 **Area:** Scheduler
@@ -108,11 +125,30 @@ Concrete hazards found while reviewing `src/Scheduler.cpp`:
 - `exitAll()` (`src/Scheduler.cpp:122-132`) has the same problem: `exit()` callbacks that mutate `m_jobs` invalidate the range-for.
 - `findJob()` (`src/Scheduler.cpp:45-54`) hands out a `Job*` that any subsequent `createJob`/`destroyJob` invalidates; callers cannot detect the staleness.
 
-### Suggested fixes
+### Resolution (0.8.1-indev)
 
-- Document that jobs must not mutate the scheduler (and enforce with an assertion), or
-- Defer mutation (queue new jobs / destroyed ids) until after the iteration completes, or
-- Iterate by index and guard against `recreate`-style reallocation.
+Mutations (createJob/destroyJob/exitAll/dependsOn) made from inside a `task` or
+`exit` are now **deferred**: they are queued (or, for a copy, recorded through
+the pending-clear flag) and flushed only after the current `execute()` pass.
+`m_jobs` is never resized mid-pass, so index-based iteration with a pass-constant
+size is safe:
+
+- `execute()` iterates by index over a fixed pass size; re-entrant
+  `createJob`/`destroyJob` queue into `m_pending_adds`/`m_pending_removes`
+  instead of touching the vector mid-pass.
+- `destroyJobNow()` moves the `Job` out of the vector *before* running `exit()`,
+  so `exit()` re-entry cannot invalidate the iterator.
+- `exitAll()` drains from the back (`drainAll`) so `exit()` re-entry is safe and
+  jobs created by `exit()` are drained too.
+- `exit()` is guaranteed to run exactly once (moved out of the live job on
+  completion/cancel; destroying an already-finished job does not re-run it).
+- Re-entrant `execute()` throws instead of recursing.
+- `findJob`'s staleness is documented: the returned pointer is valid only until
+  the next mutation.
+
+Covered by `testSchedulerReentrantCreate`, `testSchedulerReentrantDestroy`,
+`testSchedulerExitExactlyOnce`, and `testSchedulerExitAllDrainsCreatedDuringExit`
+in `tests/tests.cpp`.
 
 ---
 

@@ -1,4 +1,4 @@
-# LavaEngine [0.8.1-indev]
+# LavaEngine [0.8.2-indev]
 
 **LavaEngine** is a modular C++ game framework designed to provide the infrastructure needed to build games and interactive applications without imposing a predefined engine architecture.
 

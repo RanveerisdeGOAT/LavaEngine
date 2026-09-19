@@ -6,6 +6,14 @@
 >
 > This file contains all notable changes to LavaEngine are documented here.
 
+## [0.8.2-indev] - 19/09/26
+
+### Fixed:
+* The contract is now defined in `Scheduler`'s doxygen (`include/LavaEngine/
+Scheduler.hpp`) (ID2)
+* Scheduler is not re-entrant (iterator invalidation / UB) (ID3)
+
+
 ## [0.8.1-indev] - 18/09/26
 
 ### Fixed:

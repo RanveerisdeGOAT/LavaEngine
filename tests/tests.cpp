@@ -460,6 +460,303 @@ namespace
         void imgui() const override {}
     };
 
+    void testSchedulerBasics()
+    {
+        Scheduler scheduler;
+
+        scheduler.createJob([] { return 1; });
+        scheduler.createJob([] { return 1; });
+
+        CHECK_EQ(scheduler.jobCount(), std::size_t{2});
+        CHECK_EQ(scheduler.completedJobCount(), std::size_t{0});
+        CHECK(!scheduler.done());
+
+        scheduler.execute();
+
+        CHECK_EQ(scheduler.completedJobCount(), std::size_t{2});
+        CHECK(scheduler.done());
+
+        scheduler.execute();
+        CHECK_EQ(scheduler.completedJobCount(), std::size_t{2});
+    }
+
+    void testSchedulerRepeatContract()
+    {
+        Scheduler scheduler;
+
+        int runs = 0;
+
+        scheduler.createJob(
+            [&]
+            {
+                ++runs;
+                return runs < 3 ? 0 : 1;
+            }
+        );
+
+        scheduler.execute();
+        CHECK_EQ(runs, 1);
+
+        scheduler.execute();
+        CHECK_EQ(runs, 2);
+
+        scheduler.execute();
+        CHECK_EQ(runs, 3);
+        CHECK(scheduler.done());
+    }
+
+    void testSchedulerCancelContract()
+    {
+        Scheduler scheduler;
+
+        int runs = 0;
+
+        scheduler.createJob(
+            [&]
+            {
+                ++runs;
+                return -1;
+            }
+        );
+
+        scheduler.execute();
+        CHECK_EQ(runs, 1);
+
+        scheduler.execute();
+        CHECK_EQ(runs, 1);
+        CHECK(scheduler.done());
+    }
+
+    void testSchedulerDependencies()
+    {
+        Scheduler scheduler;
+
+        std::vector<int> order;
+
+        JobID setup = scheduler.createJob(
+            [&]
+            {
+                order.push_back(1);
+                return 1;
+            }
+        );
+
+        JobID worker = scheduler.createJob(
+            [&]
+            {
+                order.push_back(2);
+                return 1;
+            }
+        );
+
+        scheduler.dependsOn(worker, setup);
+
+        scheduler.execute();
+        CHECK_EQ(order.size(), std::size_t{2});
+
+        // The dependency id is stripped from every dependency list once the
+        // dependency job is destroyed.
+        scheduler.destroyJob(setup);
+        CHECK_EQ(scheduler.jobCount(), std::size_t{1});
+
+        scheduler.execute();
+        scheduler.execute();
+        CHECK_EQ(order.size(), std::size_t{2});
+    }
+
+    void testSchedulerSelfAndCycleRejected()
+    {
+        Scheduler scheduler;
+
+        JobID a = scheduler.createJob([] { return 1; });
+        JobID b = scheduler.createJob([] { return 1; });
+
+        bool threw = false;
+
+        try
+        {
+            scheduler.dependsOn(a, a);
+        }
+        catch (const std::exception&)
+        {
+            threw = true;
+        }
+
+        CHECK(threw);
+
+        scheduler.dependsOn(a, b);
+
+        threw = false;
+
+        try
+        {
+            scheduler.dependsOn(b, a);
+        }
+        catch (const std::exception&)
+        {
+            threw = true;
+        }
+
+        CHECK(threw);
+
+        threw = false;
+
+        try
+        {
+            scheduler.dependsOn(a, 9999);
+        }
+        catch (const std::exception&)
+        {
+            threw = true;
+        }
+
+        CHECK(threw);
+    }
+
+    void testSchedulerReentrantCreate()
+    {
+        Scheduler scheduler;
+
+        int runs = 0;
+        int childRuns = 0;
+
+        scheduler.createJob(
+            [&]
+            {
+                ++runs;
+
+                scheduler.createJob(
+                    [&]
+                    {
+                        ++childRuns;
+                        return 1;
+                    }
+                );
+
+                return 1;
+            }
+        );
+
+        scheduler.execute();
+
+        // The child job was created re-entrantly and only materializes after
+        // the pass; it must not run in the same pass.
+        CHECK_EQ(runs, 1);
+        CHECK_EQ(childRuns, 0);
+        CHECK_EQ(scheduler.jobCount(), std::size_t{2});
+
+        scheduler.execute();
+        CHECK_EQ(childRuns, 1);
+        CHECK(scheduler.done());
+    }
+
+    void testSchedulerReentrantDestroy()
+    {
+        Scheduler scheduler;
+
+        JobID victim = 0;
+        int victimRuns = 0;
+        int victimExits = 0;
+        int killerRuns = 0;
+
+        // The killer is created first, so it runs first in the pass and
+        // destroys a victim that has not run yet.
+        JobID killer = scheduler.createJob(
+            [&]
+            {
+                ++killerRuns;
+
+                scheduler.destroyJob(victim);
+
+                return 1;
+            }
+        );
+
+        victim = scheduler.createJob(
+            [&]
+            {
+                ++victimRuns;
+                return 1;
+            },
+            [&]
+            {
+                ++victimExits;
+            }
+        );
+
+        scheduler.execute();
+
+        // The victim is destroyed re-entrantly mid-pass; it never runs, its
+        // exit fires once, and it is removed from the scheduler.
+        CHECK_EQ(killerRuns, 1);
+        CHECK_EQ(victimRuns, 0);
+        CHECK_EQ(victimExits, 1);
+        CHECK_EQ(scheduler.jobCount(), std::size_t{1});
+        CHECK(scheduler.done());
+
+        scheduler.execute();
+        CHECK_EQ(victimRuns, 0);
+        CHECK_EQ(victimExits, 1);
+    }
+
+    void testSchedulerExitExactlyOnce()
+    {
+        Scheduler scheduler;
+
+        int exits = 0;
+        int runs = 0;
+
+        JobID id = scheduler.createJob(
+            [&]
+            {
+                ++runs;
+                return 1;
+            },
+            [&]
+            {
+                ++exits;
+            }
+        );
+
+        scheduler.execute();
+        scheduler.execute();
+
+        CHECK_EQ(runs, 1);
+        CHECK_EQ(exits, 1);
+
+        // Destroying a completed job must not run exit() a second time.
+        scheduler.destroyJob(id);
+        CHECK_EQ(exits, 1);
+        CHECK_EQ(scheduler.jobCount(), std::size_t{0});
+    }
+
+    void testSchedulerExitAllDrainsCreatedDuringExit()
+    {
+        Scheduler scheduler;
+
+        int exits = 0;
+
+        scheduler.createJob(
+            [] { return 0; },
+            [&]
+            {
+                ++exits;
+
+                // Re-entrantly create a fresh job; exitAll must drain it too.
+                scheduler.createJob(
+                    [] { return 0; },
+                    [&] { ++exits; }
+                );
+            }
+        );
+
+        scheduler.exitAll();
+
+        CHECK_EQ(exits, 2);
+        CHECK_EQ(scheduler.jobCount(), std::size_t{0});
+        CHECK(scheduler.done());
+    }
+
     void testTypeIdStability()
     {
         // Compile-time stable and deterministic: the same type always maps
@@ -506,6 +803,15 @@ namespace
         {"Teardown ordering", testTeardownHooksRunBeforeDestruction},
         {"Default container unload", testDefaultContainerOnUnload},
         {"Type ID stability", testTypeIdStability},
+        {"Scheduler basics", testSchedulerBasics},
+        {"Scheduler repeat contract", testSchedulerRepeatContract},
+        {"Scheduler cancel contract", testSchedulerCancelContract},
+        {"Scheduler dependencies", testSchedulerDependencies},
+        {"Scheduler rejects self/cycle deps", testSchedulerSelfAndCycleRejected},
+        {"Scheduler re-entrant create", testSchedulerReentrantCreate},
+        {"Scheduler re-entrant destroy", testSchedulerReentrantDestroy},
+        {"Scheduler exit exactly once", testSchedulerExitExactlyOnce},
+        {"Scheduler exitAll drains", testSchedulerExitAllDrainsCreatedDuringExit},
     };
 
     void printSeparator()
